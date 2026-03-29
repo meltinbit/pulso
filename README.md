@@ -40,11 +40,9 @@ Run the entire app in a single container with SQLite:
 # Build and start
 docker compose up -d
 
-# Or with a custom port
-APP_PORT=3000 docker compose up -d
 ```
 
-The app will be available at `http://localhost:8000` (or your custom port).
+The app will be available at `http://localhost:8123`.
 
 Data is persisted in Docker volumes (`app-data` for SQLite DB, `app-storage` for uploads/logs). The container includes Nginx, PHP-FPM, queue worker, and scheduler.
 
@@ -97,9 +95,10 @@ Go to APIs & Services > Credentials > Create Credentials > OAuth Client ID:
 ```
 http://127.0.0.1:8002/auth/google/callback
 http://localhost:8002/auth/google/callback
+http://localhost:8123/auth/google/callback
 ```
 
-> **Note:** Add both `127.0.0.1` and `localhost` variants. The actual URI depends on how you access the app. The port must match your `APP_URL` in `.env`.
+> **Note:** Add both `127.0.0.1` and `localhost` variants. For Docker, use port `8123`. For local dev, use port `8002`. The port must match your `APP_URL` in `.env`.
 
 Copy the **Client ID** and **Client Secret**.
 

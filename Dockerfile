@@ -5,6 +5,7 @@ RUN apk add --no-cache \
     nginx \
     supervisor \
     sqlite \
+    sqlite-dev \
     nodejs \
     npm \
     curl \
@@ -69,7 +70,7 @@ RUN mkdir -p /var/www/html/storage/framework/{sessions,views,cache} \
     && touch /var/www/html/database/database.sqlite \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
-EXPOSE 8000
+EXPOSE 8123
 
 ENTRYPOINT ["sh", "/var/www/html/docker/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

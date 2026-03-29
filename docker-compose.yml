@@ -5,12 +5,12 @@ services:
       dockerfile: Dockerfile
       target: production
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "8123:8123"
     environment:
       APP_NAME: "${APP_NAME:-Pulso}"
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_URL: "http://localhost:${APP_PORT:-8000}"
+      APP_URL: "http://localhost:8123"
       APP_KEY: "${APP_KEY:-}"
       APP_TIMEZONE: UTC
       DB_CONNECTION: sqlite
