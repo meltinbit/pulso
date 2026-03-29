@@ -1,5 +1,7 @@
 # Pulso
 
+![Pulso](public/pulso.png)
+
 GA4 Dashboard SaaS for agencies and freelancers. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4.
 
 ## Requirements
