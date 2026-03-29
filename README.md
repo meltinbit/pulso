@@ -1,4 +1,4 @@
-# Meltin Data
+# Pulso
 
 GA4 Dashboard SaaS for agencies and freelancers. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4.
 
@@ -57,7 +57,7 @@ docker compose down -v     # removes data volumes
 ### 1. Create a Google Cloud Project
 
 - Go to [console.cloud.google.com](https://console.cloud.google.com)
-- Create a new project (e.g. "Meltin Data")
+- Create a new project (e.g. "Pulso")
 
 ### 2. Enable Required APIs
 
@@ -75,7 +75,7 @@ Enable **both** APIs. You can use the direct links below (replace `YOUR_PROJECT_
 Go to APIs & Services > OAuth consent screen:
 
 - **User Type:** External
-- **App name:** Meltin Data
+- **App name:** Pulso
 - **Scopes** — add these two:
 
 | Scope | Purpose |
