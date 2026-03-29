@@ -1,0 +1,199 @@
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-sans:
+        'DM Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono:
+        'JetBrains Mono', ui-monospace, monospace;
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar-background);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+:root {
+    --background: hsl(210, 20%, 98%);
+    --foreground: hsl(220, 25%, 10%);
+    --card: hsl(0, 0%, 100%);
+    --card-foreground: hsl(220, 25%, 10%);
+    --popover: hsl(0, 0%, 100%);
+    --popover-foreground: hsl(220, 25%, 10%);
+    --primary: hsl(172, 70%, 38%);
+    --primary-foreground: hsl(0, 0%, 100%);
+    --secondary: hsl(210, 15%, 95%);
+    --secondary-foreground: hsl(220, 20%, 20%);
+    --muted: hsl(210, 15%, 95%);
+    --muted-foreground: hsl(215, 15%, 50%);
+    --accent: hsl(210, 15%, 93%);
+    --accent-foreground: hsl(220, 20%, 15%);
+    --destructive: hsl(0, 72%, 55%);
+    --destructive-foreground: hsl(0, 0%, 100%);
+    --border: hsl(214, 18%, 90%);
+    --input: hsl(214, 18%, 87%);
+    --ring: hsl(172, 70%, 38%);
+    --chart-1: hsl(172, 70%, 38%);
+    --chart-2: hsl(200, 65%, 50%);
+    --chart-3: hsl(35, 85%, 55%);
+    --chart-4: hsl(280, 55%, 55%);
+    --chart-5: hsl(340, 65%, 55%);
+    --radius: 0.625rem;
+    --sidebar-background: hsl(220, 20%, 97%);
+    --sidebar-foreground: hsl(220, 15%, 35%);
+    --sidebar-primary: hsl(172, 70%, 38%);
+    --sidebar-primary-foreground: hsl(0, 0%, 100%);
+    --sidebar-accent: hsl(210, 15%, 93%);
+    --sidebar-accent-foreground: hsl(220, 15%, 25%);
+    --sidebar-border: hsl(214, 18%, 90%);
+    --sidebar-ring: hsl(172, 70%, 38%);
+}
+
+.dark {
+    --background: hsl(220, 20%, 7%);
+    --foreground: hsl(210, 20%, 93%);
+    --card: hsl(220, 18%, 10%);
+    --card-foreground: hsl(210, 20%, 93%);
+    --popover: hsl(220, 18%, 10%);
+    --popover-foreground: hsl(210, 20%, 93%);
+    --primary: hsl(172, 65%, 45%);
+    --primary-foreground: hsl(220, 20%, 7%);
+    --secondary: hsl(220, 15%, 15%);
+    --secondary-foreground: hsl(210, 15%, 85%);
+    --muted: hsl(220, 15%, 13%);
+    --muted-foreground: hsl(215, 12%, 55%);
+    --accent: hsl(220, 15%, 16%);
+    --accent-foreground: hsl(210, 15%, 90%);
+    --destructive: hsl(0, 72%, 55%);
+    --destructive-foreground: hsl(0, 0%, 100%);
+    --border: hsl(220, 15%, 16%);
+    --input: hsl(220, 15%, 18%);
+    --ring: hsl(172, 65%, 45%);
+    --chart-1: hsl(172, 65%, 50%);
+    --chart-2: hsl(200, 60%, 55%);
+    --chart-3: hsl(35, 80%, 60%);
+    --chart-4: hsl(280, 55%, 60%);
+    --chart-5: hsl(340, 65%, 58%);
+    --sidebar-background: hsl(220, 20%, 5%);
+    --sidebar-foreground: hsl(210, 15%, 65%);
+    --sidebar-primary: hsl(172, 65%, 45%);
+    --sidebar-primary-foreground: hsl(220, 20%, 7%);
+    --sidebar-accent: hsl(220, 15%, 13%);
+    --sidebar-accent-foreground: hsl(210, 15%, 85%);
+    --sidebar-border: hsl(220, 15%, 14%);
+    --sidebar-ring: hsl(172, 65%, 45%);
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* Staggered entrance animations */
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-up {
+    animation: fade-up 0.4s ease-out both;
+}
+
+/* Subtle noise texture for depth */
+.bg-noise {
+    position: relative;
+}
+.bg-noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.015;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Glassmorphic card effect */
+.glass-card {
+    backdrop-filter: blur(12px);
+    background: hsl(220 18% 10% / 0.6);
+    border: 1px solid hsl(220 15% 20% / 0.4);
+}
+
+/* Pulse glow for realtime indicator */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(172, 65%, 45%, 0.4); }
+    50% { box-shadow: 0 0 0 6px hsl(172, 65%, 45%, 0); }
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}

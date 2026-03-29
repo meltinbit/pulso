@@ -1,0 +1,32 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      APP_NAME: "${APP_NAME:-Pulso}"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: "http://localhost:${APP_PORT:-8000}"
+      APP_KEY: "${APP_KEY:-}"
+      APP_TIMEZONE: UTC
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      LOG_CHANNEL: stderr
+      GA_CACHE_TTL_CORE: 3600
+      GA_CACHE_TTL_REALTIME: 60
+      GA_CACHE_TTL_FUNNEL: 7200
+    volumes:
+      - app-data:/var/www/html/database
+      - app-storage:/var/www/html/storage
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  app-storage:
