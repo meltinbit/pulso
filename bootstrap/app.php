@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\GoogleTokenExpiredException;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,5 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->renderable(function (GoogleTokenExpiredException $e) {
+            return redirect()->route('settings.google')
+                ->with('error', $e->getMessage());
+        });
     })->create();
