@@ -23,7 +23,9 @@ function fakeAllGaAndTelegram(): void
             ->push(['rows' => [['metricValues' => [['value' => '500'], ['value' => '700'], ['value' => '2000'], ['value' => '45.5'], ['value' => '120']]]]])
             ->push(['rows' => [['metricValues' => [['value' => '400'], ['value' => '560'], ['value' => '1800'], ['value' => '47.5'], ['value' => '110']]]]])
             ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '595']]]]])
-            ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]]),
+            ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]])
+            ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '0.6428']]]]])
+            ->push(['rows' => [['dimensionValues' => [['value' => '/'], ['value' => 'Home']], 'metricValues' => [['value' => '800'], ['value' => '600'], ['value' => '0.35'], ['value' => '95'], ['value' => '0.65']]]]]),
         'api.telegram.org/*' => Http::response(['ok' => true]),
     ]);
 }
@@ -97,11 +99,13 @@ test('job continues processing after individual property failure', function () {
         'analyticsdata.googleapis.com/*' => Http::sequence()
             // Property 1: fails
             ->push(['error' => 'quota exceeded'], 429)
-            // Property 2: succeeds (4 calls)
+            // Property 2: succeeds (6 calls)
             ->push(['rows' => [['metricValues' => [['value' => '500'], ['value' => '700'], ['value' => '2000'], ['value' => '45.5'], ['value' => '120']]]]])
             ->push(['rows' => [['metricValues' => [['value' => '400'], ['value' => '560'], ['value' => '1800'], ['value' => '47.5'], ['value' => '110']]]]])
             ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '595']]]]])
-            ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]]),
+            ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]])
+            ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '0.6428']]]]])
+            ->push(['rows' => [['dimensionValues' => [['value' => '/'], ['value' => 'Home']], 'metricValues' => [['value' => '800'], ['value' => '600'], ['value' => '0.35'], ['value' => '95'], ['value' => '0.65']]]]]),
         'api.telegram.org/*' => Http::response(['ok' => true]),
     ]);
 

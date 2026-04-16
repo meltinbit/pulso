@@ -22,6 +22,9 @@ class PropertySnapshot extends Model
         'pageviews',
         'bounce_rate',
         'avg_session_duration',
+        'pages_per_session',
+        'engaged_sessions',
+        'engagement_rate',
         'top_sources',
         'users_delta_wow',
         'sessions_delta_wow',
@@ -45,6 +48,9 @@ class PropertySnapshot extends Model
             'pageviews' => 'integer',
             'bounce_rate' => 'decimal:2',
             'avg_session_duration' => 'integer',
+            'pages_per_session' => 'decimal:2',
+            'engaged_sessions' => 'integer',
+            'engagement_rate' => 'decimal:2',
             'top_sources' => 'array',
             'users_delta_wow' => 'decimal:2',
             'sessions_delta_wow' => 'decimal:2',
@@ -67,5 +73,10 @@ class PropertySnapshot extends Model
     public function sources(): HasMany
     {
         return $this->hasMany(PropertySnapshotSource::class);
+    }
+
+    public function pages(): HasMany
+    {
+        return $this->hasMany(PropertySnapshotPage::class);
     }
 }

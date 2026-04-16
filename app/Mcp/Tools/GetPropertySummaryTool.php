@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Get a comprehensive analytical summary for a GA4 property. Includes the latest snapshot, 7-day and 30-day averages, recent anomalies (spikes/drops), and top traffic sources. Best tool for getting actionable insights on a single property.')]
+#[Description('Get a comprehensive analytical summary for a GA4 property. Includes the latest snapshot with engagement metrics, 7-day and 30-day averages, recent anomalies (spikes/drops), top traffic sources, and top pages with per-page bounce rate and entrances. Best tool for getting actionable insights on a single property.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetPropertySummaryTool extends Tool
@@ -77,6 +77,9 @@ class GetPropertySummaryTool extends Tool
                 'pageviews' => $latest->pageviews,
                 'bounce_rate' => $latest->bounce_rate,
                 'avg_session_duration' => $latest->avg_session_duration,
+                'pages_per_session' => $latest->pages_per_session,
+                'engaged_sessions' => $latest->engaged_sessions,
+                'engagement_rate' => $latest->engagement_rate,
                 'trend' => $latest->trend,
                 'trend_score' => $latest->trend_score,
                 'users_delta_wow' => $latest->users_delta_wow,
@@ -91,17 +94,32 @@ class GetPropertySummaryTool extends Tool
                 'sessions' => $avg($last7, 'sessions'),
                 'pageviews' => $avg($last7, 'pageviews'),
                 'bounce_rate' => $avg($last7, 'bounce_rate'),
+                'engagement_rate' => $avg($last7, 'engagement_rate'),
             ],
             'averages_30d' => [
                 'users' => $avg($last30, 'users'),
                 'sessions' => $avg($last30, 'sessions'),
                 'pageviews' => $avg($last30, 'pageviews'),
                 'bounce_rate' => $avg($last30, 'bounce_rate'),
+                'engagement_rate' => $avg($last30, 'engagement_rate'),
             ],
             'trend_distribution_30d' => $last30->groupBy('trend')
                 ->map(fn ($group) => $group->count()),
             'anomalies' => $anomalies,
             'top_sources_latest' => $latestSources,
+            'top_pages_latest' => $latest->pages()
+                ->orderByDesc('pageviews')
+                ->limit(10)
+                ->get()
+                ->map(fn ($p) => [
+                    'page_path' => $p->page_path,
+                    'page_title' => $p->page_title,
+                    'pageviews' => $p->pageviews,
+                    'users' => $p->users,
+                    'bounce_rate' => $p->bounce_rate,
+                    'avg_engagement_time' => $p->avg_engagement_time,
+                    'engagement_rate' => $p->engagement_rate,
+                ]),
         ];
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));

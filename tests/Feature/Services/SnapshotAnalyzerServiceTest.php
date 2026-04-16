@@ -68,6 +68,40 @@ function fakeGaResponses(int $users = 500, int $sessions = 700, int $pageviews =
                         'metricValues' => [['value' => '200'], ['value' => '150']],
                     ],
                 ],
+            ])
+            // Engagement metrics
+            ->push([
+                'rows' => [[
+                    'metricValues' => [
+                        ['value' => '450'],
+                        ['value' => '0.6428'],
+                    ],
+                ]],
+            ])
+            // Pages
+            ->push([
+                'rows' => [
+                    [
+                        'dimensionValues' => [['value' => '/'], ['value' => 'Home']],
+                        'metricValues' => [
+                            ['value' => '800'],
+                            ['value' => '600'],
+                            ['value' => '0.35'],
+                            ['value' => '95'],
+                            ['value' => '0.65'],
+                        ],
+                    ],
+                    [
+                        'dimensionValues' => [['value' => '/about'], ['value' => 'About']],
+                        'metricValues' => [
+                            ['value' => '200'],
+                            ['value' => '150'],
+                            ['value' => '0.55'],
+                            ['value' => '45'],
+                            ['value' => '80'],
+                        ],
+                    ],
+                ],
             ]),
     ]);
 }

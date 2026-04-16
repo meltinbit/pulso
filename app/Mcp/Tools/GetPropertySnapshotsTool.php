@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Get daily snapshots for a GA4 property within a date range. Returns metrics (users, sessions, pageviews, bounce rate, avg session duration), week-over-week and 30-day deltas, trend category, trend score, and anomaly flags.')]
+#[Description('Get daily snapshots for a GA4 property within a date range. Returns metrics (users, sessions, pageviews, bounce rate, avg session duration, engagement rate, pages per session), week-over-week and 30-day deltas, trend category, trend score, and anomaly flags.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetPropertySnapshotsTool extends Tool
@@ -40,6 +40,9 @@ class GetPropertySnapshotsTool extends Tool
                 'pageviews' => $s->pageviews,
                 'bounce_rate' => $s->bounce_rate,
                 'avg_session_duration' => $s->avg_session_duration,
+                'pages_per_session' => $s->pages_per_session,
+                'engaged_sessions' => $s->engaged_sessions,
+                'engagement_rate' => $s->engagement_rate,
                 'users_delta_wow' => $s->users_delta_wow,
                 'sessions_delta_wow' => $s->sessions_delta_wow,
                 'pageviews_delta_wow' => $s->pageviews_delta_wow,

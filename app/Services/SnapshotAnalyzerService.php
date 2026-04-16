@@ -27,6 +27,8 @@ class SnapshotAnalyzerService
         $weekAgoData = $this->fetchDayMetrics($property, $weekAgo, $weekAgo);
         $avg30dData = $this->fetchAverageMetrics($property, $thirtyDaysAgo, $oneDayBefore);
         $sourcesData = $this->fetchSources($property, $yesterday, $yesterday);
+        $engagementData = $this->fetchEngagementMetrics($property, $yesterday, $yesterday);
+        $pagesData = $this->fetchPages($property, $yesterday, $yesterday);
 
         $users = $this->extractMetric($yesterdayData, 0);
         $sessions = $this->extractMetric($yesterdayData, 1);
@@ -55,6 +57,12 @@ class SnapshotAnalyzerService
 
         $topSources = $this->parseSources($sourcesData);
 
+        $engagedSessions = $this->extractMetric($engagementData, 0);
+        $engagementRate = $this->extractMetricFloat($engagementData, 1);
+        $pagesPerSession = $sessions > 0 ? round($pageviews / $sessions, 2) : 0;
+
+        $topPages = $this->parsePages($pagesData);
+
         $snapshot = PropertySnapshot::updateOrCreate(
             ['ga_property_id' => $property->id, 'snapshot_date' => $snapshotDate],
             [
@@ -73,6 +81,9 @@ class SnapshotAnalyzerService
                 'sessions_delta_30d' => $sessionsDelta30d,
                 'trend' => $trend,
                 'trend_score' => $trendScore,
+                'pages_per_session' => $pagesPerSession,
+                'engaged_sessions' => $engagedSessions,
+                'engagement_rate' => $engagementRate,
                 'is_spike' => $anomaly['is_spike'],
                 'is_drop' => $anomaly['is_drop'],
                 'is_stall' => abs($usersDeltaWow ?? 0) < 5,
@@ -87,6 +98,11 @@ class SnapshotAnalyzerService
                 'sessions' => $source['sessions'],
                 'users' => $source['users'],
             ]);
+        }
+
+        $snapshot->pages()->delete();
+        foreach ($topPages as $page) {
+            $snapshot->pages()->create($page);
         }
 
         return $snapshot;
@@ -221,6 +237,49 @@ class SnapshotAnalyzerService
     }
 
     /**
+     * Fetch engagement metrics for a date range from GA4.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchEngagementMetrics(GaProperty $property, string $startDate, string $endDate): array
+    {
+        return $this->gaClient->runReport($property, [
+            'dateRanges' => [['startDate' => $startDate, 'endDate' => $endDate]],
+            'metrics' => [
+                ['name' => 'engagedSessions'],
+                ['name' => 'engagementRate'],
+            ],
+        ]);
+    }
+
+    /**
+     * Fetch top pages with per-page metrics from GA4.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchPages(GaProperty $property, string $startDate, string $endDate): array
+    {
+        return $this->gaClient->runReport($property, [
+            'dateRanges' => [['startDate' => $startDate, 'endDate' => $endDate]],
+            'dimensions' => [
+                ['name' => 'pagePath'],
+                ['name' => 'pageTitle'],
+            ],
+            'metrics' => [
+                ['name' => 'screenPageViews'],
+                ['name' => 'activeUsers'],
+                ['name' => 'bounceRate'],
+                ['name' => 'userEngagementDuration'],
+                ['name' => 'engagementRate'],
+            ],
+            'orderBys' => [
+                ['metric' => ['metricName' => 'screenPageViews'], 'desc' => true],
+            ],
+            'limit' => 20,
+        ]);
+    }
+
+    /**
      * Parse GA4 sources response into a structured array.
      *
      * @return array<int, array{source: string, medium: string, sessions: int, users: int}>
@@ -240,5 +299,30 @@ class SnapshotAnalyzerService
         }
 
         return $sources;
+    }
+
+    /**
+     * Parse GA4 pages response into a structured array.
+     *
+     * @return array<int, array{page_path: string, page_title: string|null, pageviews: int, users: int, bounce_rate: float, avg_engagement_time: int, engagement_rate: float}>
+     */
+    private function parsePages(array $response): array
+    {
+        $rows = data_get($response, 'rows', []);
+        $pages = [];
+
+        foreach ($rows as $row) {
+            $pages[] = [
+                'page_path' => data_get($row, 'dimensionValues.0.value', '/'),
+                'page_title' => data_get($row, 'dimensionValues.1.value'),
+                'pageviews' => (int) data_get($row, 'metricValues.0.value', 0),
+                'users' => (int) data_get($row, 'metricValues.1.value', 0),
+                'bounce_rate' => round((float) data_get($row, 'metricValues.2.value', 0) * 100, 2),
+                'avg_engagement_time' => (int) round((float) data_get($row, 'metricValues.3.value', 0)),
+                'engagement_rate' => round((float) data_get($row, 'metricValues.4.value', 0) * 100, 2),
+            ];
+        }
+
+        return $pages;
     }
 }

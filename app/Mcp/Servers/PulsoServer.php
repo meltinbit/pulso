@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Tools\GetPropertyPagesTool;
 use App\Mcp\Tools\GetPropertySnapshotsTool;
 use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
@@ -20,6 +21,7 @@ class PulsoServer extends Server
         ListPropertiesTool::class,
         GetPropertySnapshotsTool::class,
         GetPropertySourcesTool::class,
+        GetPropertyPagesTool::class,
         GetPropertySummaryTool::class,
     ];
 }
