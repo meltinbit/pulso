@@ -4,8 +4,7 @@ FROM php:8.2-fpm-alpine AS base
 RUN apk add --no-cache \
     nginx \
     supervisor \
-    sqlite \
-    sqlite-dev \
+    mysql-client \
     nodejs \
     npm \
     curl \
@@ -17,7 +16,7 @@ RUN apk add --no-cache \
 
 # Install PHP extensions
 RUN docker-php-ext-install \
-    pdo_sqlite \
+    pdo_mysql \
     mbstring \
     zip \
     intl \
@@ -66,9 +65,7 @@ RUN rm -rf node_modules tests .env.example docker-compose.yml Dockerfile \
 # Create directories and set permissions
 RUN mkdir -p /var/www/html/storage/framework/{sessions,views,cache} \
     && mkdir -p /var/www/html/storage/logs \
-    && mkdir -p /var/www/html/database \
-    && touch /var/www/html/database/database.sqlite \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 8123
 

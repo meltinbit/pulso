@@ -32,19 +32,24 @@ php artisan serve --port=8002
 npm run dev
 ```
 
-## Docker (SQLite)
+## Docker
 
-Run the entire app in a single container with SQLite:
+Run the app with Docker Compose (includes MySQL 8.0):
 
 ```bash
 # Build and start
 docker compose up -d
-
 ```
 
 The app will be available at `http://localhost:8123`.
 
-Data is persisted in Docker volumes (`app-data` for SQLite DB, `app-storage` for uploads/logs). The container includes Nginx, PHP-FPM, queue worker, and scheduler.
+You can set the database password via environment variable:
+
+```bash
+DB_PASSWORD=mypassword docker compose up -d
+```
+
+Data is persisted in Docker volumes (`mysql-data` for the database, `app-storage` for uploads/logs). The app container includes Nginx, PHP-FPM, queue worker, and scheduler.
 
 To stop:
 ```bash
