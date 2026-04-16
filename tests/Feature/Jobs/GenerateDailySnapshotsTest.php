@@ -1,0 +1,149 @@
+<?php
+
+use App\Jobs\GenerateDailySnapshots;
+use App\Models\GaConnection;
+use App\Models\GaProperty;
+use App\Models\PropertySnapshot;
+use App\Services\SnapshotAnalyzerService;
+use App\Services\TelegramNotificationService;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+beforeEach(function () {
+    Http::preventStrayRequests();
+
+    config(['services.telegram.bot_token' => 'test-token']);
+    config(['services.telegram.chat_id' => '12345']);
+});
+
+function fakeAllGaAndTelegram(): void
+{
+    Http::fake([
+        'analyticsdata.googleapis.com/*' => Http::sequence()
+            ->push(['rows' => [['metricValues' => [['value' => '500'], ['value' => '700'], ['value' => '2000'], ['value' => '45.5'], ['value' => '120']]]]])
+            ->push(['rows' => [['metricValues' => [['value' => '400'], ['value' => '560'], ['value' => '1800'], ['value' => '47.5'], ['value' => '110']]]]])
+            ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '595']]]]])
+            ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]]),
+        'api.telegram.org/*' => Http::response(['ok' => true]),
+    ]);
+}
+
+test('job creates snapshots for all active properties', function () {
+    $connection = GaConnection::factory()->create();
+    GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'is_active' => true,
+    ]);
+
+    fakeAllGaAndTelegram();
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+    );
+
+    expect(PropertySnapshot::count())->toBe(1);
+});
+
+test('job skips inactive properties', function () {
+    $connection = GaConnection::factory()->create();
+    GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'is_active' => false,
+    ]);
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+    );
+
+    expect(PropertySnapshot::count())->toBe(0);
+});
+
+test('job skips properties with inactive connections', function () {
+    $connection = GaConnection::factory()->inactive()->create();
+    GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'is_active' => true,
+    ]);
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+    );
+
+    expect(PropertySnapshot::count())->toBe(0);
+});
+
+test('job continues processing after individual property failure', function () {
+    $connection = GaConnection::factory()->create();
+    $property1 = GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'property_id' => '111111111',
+        'is_active' => true,
+    ]);
+    $property2 = GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'property_id' => '222222222',
+        'is_active' => true,
+    ]);
+
+    Http::fake([
+        'analyticsdata.googleapis.com/*' => Http::sequence()
+            // Property 1: fails
+            ->push(['error' => 'quota exceeded'], 429)
+            // Property 2: succeeds (4 calls)
+            ->push(['rows' => [['metricValues' => [['value' => '500'], ['value' => '700'], ['value' => '2000'], ['value' => '45.5'], ['value' => '120']]]]])
+            ->push(['rows' => [['metricValues' => [['value' => '400'], ['value' => '560'], ['value' => '1800'], ['value' => '47.5'], ['value' => '110']]]]])
+            ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '595']]]]])
+            ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]]),
+        'api.telegram.org/*' => Http::response(['ok' => true]),
+    ]);
+
+    Log::shouldReceive('warning')->once();
+    Log::shouldReceive('info')->once();
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+    );
+
+    // Only property 2 should have a snapshot
+    expect(PropertySnapshot::count())->toBe(1);
+});
+
+test('job sends Telegram digest after generating snapshots', function () {
+    $connection = GaConnection::factory()->create();
+    GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'is_active' => true,
+    ]);
+
+    fakeAllGaAndTelegram();
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+    );
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), 'api.telegram.org');
+    });
+});
+
+test('job does nothing when no active properties exist', function () {
+    Log::shouldReceive('info')->once()->withArgs(fn ($msg) => str_contains($msg, 'no active properties'));
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+    );
+
+    expect(PropertySnapshot::count())->toBe(0);
+});

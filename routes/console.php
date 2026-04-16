@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\GenerateDailySnapshots;
 use App\Jobs\RefreshAnalyticsCache;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -10,3 +11,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new RefreshAnalyticsCache)->dailyAt('02:00')->withoutOverlapping();
+Schedule::job(new GenerateDailySnapshots)->dailyAt('07:00')->withoutOverlapping();

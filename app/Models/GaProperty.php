@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\GaPropertyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GaProperty extends Model
 {
-    /** @use HasFactory<\Database\Factories\GaPropertyFactory> */
+    /** @use HasFactory<GaPropertyFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -56,5 +57,10 @@ class GaProperty extends Model
     public function analyticsCache(): HasMany
     {
         return $this->hasMany(AnalyticsCache::class);
+    }
+
+    public function snapshots(): HasMany
+    {
+        return $this->hasMany(PropertySnapshot::class);
     }
 }
