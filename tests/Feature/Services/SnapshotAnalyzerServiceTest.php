@@ -98,11 +98,16 @@ function fakeGaResponses(int $users = 500, int $sessions = 700, int $pageviews =
                             ['value' => '150'],
                             ['value' => '0.55'],
                             ['value' => '45'],
-                            ['value' => '80'],
+                            ['value' => '0.65'],
                         ],
                     ],
                 ],
             ]),
+        'searchconsole.googleapis.com/*' => Http::response([
+            'rows' => [
+                ['keys' => ['calcolatore imu', 'https://example.com/calcolatore'], 'clicks' => 50, 'impressions' => 1000, 'ctr' => 0.05, 'position' => 3.2],
+            ],
+        ]),
     ]);
 }
 

@@ -26,6 +26,7 @@ function fakeAllGaAndTelegram(): void
             ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]])
             ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '0.6428']]]]])
             ->push(['rows' => [['dimensionValues' => [['value' => '/'], ['value' => 'Home']], 'metricValues' => [['value' => '800'], ['value' => '600'], ['value' => '0.35'], ['value' => '95'], ['value' => '0.65']]]]]),
+        'searchconsole.googleapis.com/*' => Http::response(['rows' => []]),
         'api.telegram.org/*' => Http::response(['ok' => true]),
     ]);
 }
@@ -106,6 +107,7 @@ test('job continues processing after individual property failure', function () {
             ->push(['rows' => [['dimensionValues' => [['value' => 'google'], ['value' => 'organic']], 'metricValues' => [['value' => '300'], ['value' => '250']]]]])
             ->push(['rows' => [['metricValues' => [['value' => '450'], ['value' => '0.6428']]]]])
             ->push(['rows' => [['dimensionValues' => [['value' => '/'], ['value' => 'Home']], 'metricValues' => [['value' => '800'], ['value' => '600'], ['value' => '0.35'], ['value' => '95'], ['value' => '0.65']]]]]),
+        'searchconsole.googleapis.com/*' => Http::response(['rows' => []]),
         'api.telegram.org/*' => Http::response(['ok' => true]),
     ]);
 

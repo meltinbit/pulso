@@ -107,6 +107,18 @@ class GetPropertySummaryTool extends Tool
                 ->map(fn ($group) => $group->count()),
             'anomalies' => $anomalies,
             'top_sources_latest' => $latestSources,
+            'top_search_queries_latest' => $latest->searchQueries()
+                ->orderByDesc('clicks')
+                ->limit(10)
+                ->get()
+                ->map(fn ($q) => [
+                    'query' => $q->query,
+                    'page' => $q->page,
+                    'clicks' => $q->clicks,
+                    'impressions' => $q->impressions,
+                    'ctr' => $q->ctr,
+                    'position' => $q->position,
+                ]),
             'top_pages_latest' => $latest->pages()
                 ->orderByDesc('pageviews')
                 ->limit(10)

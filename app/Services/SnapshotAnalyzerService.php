@@ -10,6 +10,7 @@ class SnapshotAnalyzerService
 {
     public function __construct(
         private GaClientService $gaClient,
+        private SearchConsoleService $searchConsole,
     ) {}
 
     /**
@@ -103,6 +104,12 @@ class SnapshotAnalyzerService
         $snapshot->pages()->delete();
         foreach ($topPages as $page) {
             $snapshot->pages()->create($page);
+        }
+
+        $searchQueries = $this->searchConsole->fetchSearchQueries($property, $yesterday);
+        $snapshot->searchQueries()->delete();
+        foreach ($searchQueries as $query) {
+            $snapshot->searchQueries()->create($query);
         }
 
         return $snapshot;
