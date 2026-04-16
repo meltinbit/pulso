@@ -128,6 +128,67 @@ GA_CACHE_TTL_REALTIME=60      # 1 minute for realtime
 GA_CACHE_TTL_FUNNEL=7200      # 2 hours for funnel reports
 ```
 
+## Scheduled Jobs
+
+Pulso runs two scheduled jobs daily (configured in `routes/console.php`):
+
+| Job | Schedule | Purpose |
+|-----|----------|---------|
+| `RefreshAnalyticsCache` | 02:00 UTC | Refreshes the GA4 analytics cache |
+| `GenerateDailySnapshots` | 07:00 UTC | Generates daily snapshots and sends Telegram digest |
+
+To change the schedule, edit `routes/console.php`:
+
+```php
+Schedule::job(new RefreshAnalyticsCache)->dailyAt('02:00')->withoutOverlapping();
+Schedule::job(new GenerateDailySnapshots)->dailyAt('07:00')->withoutOverlapping();
+```
+
+### Manual Snapshot Generation
+
+You can generate snapshots manually with the `snapshots:generate` command:
+
+```bash
+# Yesterday (default)
+php artisan snapshots:generate
+
+# Specific date range (backfill)
+php artisan snapshots:generate --from=2026-03-17 --to=2026-04-15
+
+# Single property, no Telegram notification
+php artisan snapshots:generate --from=2026-04-01 --to=2026-04-15 --property=3 --no-telegram
+```
+
+| Option | Description |
+|--------|-------------|
+| `--from` | Start date, YYYY-MM-DD (default: yesterday) |
+| `--to` | End date, YYYY-MM-DD (default: same as `--from`) |
+| `--property` | Generate only for a specific property ID |
+| `--no-telegram` | Skip Telegram digest |
+
+## MCP Server (AI Integration)
+
+Pulso exposes an MCP server at `/mcp/pulso` that allows AI clients (like Claude.ai) to analyze GA4 snapshot data.
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `list-properties` | List all active GA4 properties with latest trend |
+| `get-property-snapshots` | Get daily snapshots for a property within a date range |
+| `get-property-sources` | Get aggregated traffic sources for a property |
+| `get-property-summary` | Comprehensive summary with averages, anomalies, and top sources |
+
+### Connecting from Claude.ai
+
+Add Pulso as a remote MCP server using your deployment URL:
+
+```
+https://your-domain.com/mcp/pulso
+```
+
+All tools are read-only and expose snapshot data for AI-driven analysis.
+
 ## Testing
 
 ```bash
