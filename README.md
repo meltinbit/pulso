@@ -66,14 +66,15 @@ docker compose down -v     # removes data volumes
 
 ### 2. Enable Required APIs
 
-Enable **both** APIs. You can use the direct links below (replace `YOUR_PROJECT_ID` with your numeric project ID) or find them in APIs & Services > Library:
+Enable **all three** APIs. You can use the direct links below (replace `YOUR_PROJECT_ID` with your numeric project ID) or find them in APIs & Services > Library:
 
 | API | Purpose | Direct Enable Link |
 |-----|---------|-------------------|
 | **Google Analytics Data API** | Fetch reports, metrics, realtime data | `https://console.developers.google.com/apis/api/analyticsdata.googleapis.com/overview?project=YOUR_PROJECT_ID` |
 | **Google Analytics Admin API** | List accessible GA4 properties | `https://console.developers.google.com/apis/api/analyticsadmin.googleapis.com/overview?project=YOUR_PROJECT_ID` |
+| **Google Search Console API** | Fetch search queries, impressions, CTR, position | `https://console.developers.google.com/apis/api/searchconsole.googleapis.com/overview?project=YOUR_PROJECT_ID` |
 
-> **Important:** Both APIs must be enabled. The Admin API is needed to list properties, the Data API is needed to fetch analytics data. If either is missing you'll get a 403 "SERVICE_DISABLED" error. After enabling, wait 1-2 minutes for propagation.
+> **Important:** All three APIs must be enabled. The Admin API is needed to list properties, the Data API for analytics data, and the Search Console API for search query data. If any is missing you'll get a 403 "SERVICE_DISABLED" error. After enabling, wait 1-2 minutes for propagation.
 
 ### 3. Configure OAuth Consent Screen
 
@@ -81,12 +82,13 @@ Go to APIs & Services > OAuth consent screen:
 
 - **User Type:** External
 - **App name:** Pulso
-- **Scopes** — add these two:
+- **Scopes** — add these three:
 
 | Scope | Purpose |
 |-------|---------|
 | `https://www.googleapis.com/auth/analytics.readonly` | Read GA4 report data |
 | `https://www.googleapis.com/auth/analytics.edit` | Read property list from Admin API (read-only despite the name) |
+| `https://www.googleapis.com/auth/webmasters.readonly` | Read Search Console data (queries, impressions, CTR, position) |
 
 - **Test users:** Add any Gmail accounts that will use the app during development
 

@@ -15,7 +15,11 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('Pulso')]
 #[Version('1.0.0')]
-#[Instructions('Pulso is a GA4 analytics dashboard. This server exposes daily snapshots of GA4 properties with metrics (users, sessions, pageviews, bounce rate), week-over-week and 30-day deltas, trend analysis (spike/improved/stall/declined/drop), anomaly detection, and traffic source breakdowns. Use these tools to analyze website performance trends, identify anomalies, and provide actionable insights for each property.')]
+#[Instructions('Pulso is a GA4 analytics dashboard with Google Search Console integration. It stores daily snapshots of GA4 properties with metrics (users, sessions, pageviews, bounce rate, engagement rate), week-over-week and 30-day deltas, trend analysis, anomaly detection, traffic sources, top pages, and search queries (clicks, impressions, CTR, position).
+
+Workflow: start with list-properties for an overview, then use get-property-summary for a single property deep dive. For trend analysis over time, use get-property-snapshots, get-property-sources, get-property-pages, and get-property-search-queries with date ranges (from/to). All range tools default to 30 days but accept custom ranges for deeper analysis.
+
+Note: Search Console data has a 2-3 day delay from Google, so the most recent days may not have search query data. The summary tool automatically falls back to the latest snapshot that has search queries.')]
 class PulsoServer extends Server
 {
     protected array $tools = [

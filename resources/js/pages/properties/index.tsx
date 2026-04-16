@@ -1,12 +1,14 @@
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 
 import HeadingSmall from '@/components/heading-small';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Check, Globe, Pencil, Plus, Trash2 } from 'lucide-react';
 
 interface AvailableProperty {
     property_id: string;
@@ -46,6 +48,96 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/properties',
     },
 ];
+
+function MonitoredPropertyCard({
+    property,
+    index,
+    onRemove,
+}: {
+    property: SavedProperty;
+    index: number;
+    onRemove: (id: number) => void;
+}) {
+    const [editing, setEditing] = useState(false);
+    const { data, setData, put, processing } = useForm({
+        website_url: property.website_url || '',
+    });
+
+    function handleSave(e: React.FormEvent) {
+        e.preventDefault();
+        put(route('properties.update', property.id), {
+            onSuccess: () => setEditing(false),
+            preserveScroll: true,
+        });
+    }
+
+    return (
+        <div
+            className="animate-fade-up group rounded-lg border p-3 transition-colors hover:bg-accent/50"
+            style={{ animationDelay: `${150 + index * 50}ms` }}
+        >
+            <div className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{property.display_name}</p>
+                    <p className="text-muted-foreground font-mono text-xs">
+                        {property.property_id}
+                        {property.ga_connection && <span> &middot; {property.ga_connection.google_email}</span>}
+                    </p>
+                </div>
+                <div className="ml-3 flex items-center gap-1">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={() => setEditing(!editing)}
+                    >
+                        <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-red-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
+                        onClick={() => onRemove(property.id)}
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                </div>
+            </div>
+
+            {!editing && property.website_url && (
+                <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+                    <Globe className="h-3 w-3" />
+                    {property.website_url}
+                </p>
+            )}
+
+            {!editing && !property.website_url && (
+                <button
+                    onClick={() => setEditing(true)}
+                    className="text-muted-foreground mt-1 flex items-center gap-1 text-xs hover:text-foreground"
+                >
+                    <Globe className="h-3 w-3" />
+                    Set website URL
+                </button>
+            )}
+
+            {editing && (
+                <form onSubmit={handleSave} className="mt-2 flex items-center gap-2">
+                    <Input
+                        type="url"
+                        placeholder="https://example.com"
+                        value={data.website_url}
+                        onChange={(e) => setData('website_url', e.target.value)}
+                        className="h-7 text-xs"
+                    />
+                    <Button type="submit" size="sm" className="h-7 text-xs" disabled={processing}>
+                        Save
+                    </Button>
+                </form>
+            )}
+        </div>
+    );
+}
 
 export default function PropertiesIndex() {
     const { available, saved, flash } = usePage<PropertiesPageProps>().props;
@@ -173,29 +265,12 @@ export default function PropertiesIndex() {
                             ) : (
                                 <div className="space-y-2">
                                     {saved.map((property, i) => (
-                                        <div
+                                        <MonitoredPropertyCard
                                             key={property.id}
-                                            className="animate-fade-up group flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent/50"
-                                            style={{ animationDelay: `${150 + i * 50}ms` }}
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium">{property.display_name}</p>
-                                                <p className="text-muted-foreground font-mono text-xs">
-                                                    {property.property_id}
-                                                    {property.ga_connection && (
-                                                        <span> &middot; {property.ga_connection.google_email}</span>
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="ml-3 h-7 w-7 p-0 text-red-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
-                                                onClick={() => handleRemove(property.id)}
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </div>
+                                            property={property}
+                                            index={i}
+                                            onRemove={handleRemove}
+                                        />
                                     ))}
                                 </div>
                             )}

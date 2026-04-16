@@ -107,18 +107,7 @@ class GetPropertySummaryTool extends Tool
                 ->map(fn ($group) => $group->count()),
             'anomalies' => $anomalies,
             'top_sources_latest' => $latestSources,
-            'top_search_queries_latest' => $latest->searchQueries()
-                ->orderByDesc('clicks')
-                ->limit(10)
-                ->get()
-                ->map(fn ($q) => [
-                    'query' => $q->query,
-                    'page' => $q->page,
-                    'clicks' => $q->clicks,
-                    'impressions' => $q->impressions,
-                    'ctr' => $q->ctr,
-                    'position' => $q->position,
-                ]),
+            'top_search_queries' => $this->getLatestSearchQueries($property),
             'top_pages_latest' => $latest->pages()
                 ->orderByDesc('pageviews')
                 ->limit(10)
@@ -135,6 +124,38 @@ class GetPropertySummaryTool extends Tool
         ];
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Get search queries from the most recent snapshot that has them.
+     * Search Console data has a 2-3 day delay, so the latest snapshot may not have queries yet.
+     */
+    private function getLatestSearchQueries(GaProperty $property): array
+    {
+        $snapshotWithQueries = $property->snapshots()
+            ->whereHas('searchQueries')
+            ->latest('snapshot_date')
+            ->first();
+
+        if (! $snapshotWithQueries) {
+            return [];
+        }
+
+        return [
+            'date' => $snapshotWithQueries->snapshot_date->toDateString(),
+            'queries' => $snapshotWithQueries->searchQueries()
+                ->orderByDesc('clicks')
+                ->limit(10)
+                ->get()
+                ->map(fn ($q) => [
+                    'query' => $q->query,
+                    'page' => $q->page,
+                    'clicks' => $q->clicks,
+                    'impressions' => $q->impressions,
+                    'ctr' => $q->ctr,
+                    'position' => $q->position,
+                ])->all(),
+        ];
     }
 
     /**

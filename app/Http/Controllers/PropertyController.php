@@ -49,6 +49,19 @@ class PropertyController extends Controller
         return back()->with('success', 'Property aggiunta al monitoraggio.');
     }
 
+    public function update(Request $request, GaProperty $property): RedirectResponse
+    {
+        abort_unless($property->user_id === auth()->id(), 403);
+
+        $validated = $request->validate([
+            'website_url' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $property->update($validated);
+
+        return back()->with('success', 'Property aggiornata.');
+    }
+
     public function destroy(GaProperty $property): RedirectResponse
     {
         abort_unless($property->user_id === auth()->id(), 403);

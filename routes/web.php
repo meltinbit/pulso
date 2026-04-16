@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\AudienceReportController;
-use App\Http\Controllers\FunnelController;
 use App\Http\Controllers\ContentReportController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FunnelController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\TrafficReportController;
@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
     Route::post('properties', [PropertyController::class, 'store'])->name('properties.store');
+    Route::put('properties/{property}', [PropertyController::class, 'update'])->name('properties.update');
     Route::delete('properties/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
     Route::post('properties/switch', [PropertyController::class, 'switch'])->name('properties.switch');
 });
