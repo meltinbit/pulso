@@ -30,8 +30,8 @@ test('google credentials can be saved', function () {
         ->assertRedirect();
 
     $settings = app(SettingService::class);
-    expect($settings->get('google_client_id'))->toBe('test-client-id.apps.googleusercontent.com');
-    expect($settings->get('google_client_secret'))->toBe('test-client-secret');
+    expect($settings->get($user->id, 'google_client_id'))->toBe('test-client-id.apps.googleusercontent.com');
+    expect($settings->get($user->id, 'google_client_secret'))->toBe('test-client-secret');
 });
 
 test('google credentials are stored encrypted', function () {
@@ -44,7 +44,7 @@ test('google credentials are stored encrypted', function () {
             'google_client_secret' => 'test-secret',
         ]);
 
-    $setting = AppSetting::where('key', 'google_client_secret')->first();
+    $setting = AppSetting::where('user_id', $user->id)->where('key', 'google_client_secret')->first();
     expect($setting->is_encrypted)->toBeTrue();
     expect($setting->value)->not->toBe('test-secret');
 });

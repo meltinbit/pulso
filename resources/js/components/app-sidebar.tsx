@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ArrowRightLeft, FileText, Filter, Globe, LayoutGrid, Settings, Users } from 'lucide-react';
+import { ArrowRightLeft, Camera, FileText, Filter, Globe, LayoutGrid, Settings, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 import { PropertySwitcher } from './property-switcher';
 
@@ -33,6 +33,11 @@ const mainNavItems: NavItem[] = [
         title: 'Funnels',
         url: '/funnels',
         icon: Filter,
+    },
+    {
+        title: 'Snapshots',
+        url: '/snapshots',
+        icon: Camera,
     },
 ];
 
@@ -65,10 +70,10 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
                 <div className="px-3 py-2">
                     <PropertySwitcher />
                 </div>
+                <NavMain items={mainNavItems} />
             </SidebarContent>
 
             <SidebarFooter>

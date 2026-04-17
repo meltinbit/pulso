@@ -14,9 +14,9 @@ class GoogleAuthController extends Controller
         private SettingService $settings,
     ) {}
 
-    public function redirect(): RedirectResponse
+    public function redirect(Request $request): RedirectResponse
     {
-        $this->configureGoogleDriver();
+        $this->configureGoogleDriver($request);
 
         return Socialite::driver('google')
             ->scopes([
@@ -30,7 +30,7 @@ class GoogleAuthController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
-        $this->configureGoogleDriver();
+        $this->configureGoogleDriver($request);
 
         try {
             $googleUser = Socialite::driver('google')->user();
@@ -64,11 +64,13 @@ class GoogleAuthController extends Controller
         return back()->with('success', 'Account Google scollegato.');
     }
 
-    private function configureGoogleDriver(): void
+    private function configureGoogleDriver(Request $request): void
     {
+        $userId = $request->user()->id;
+
         config([
-            'services.google.client_id' => $this->settings->get('google_client_id'),
-            'services.google.client_secret' => $this->settings->get('google_client_secret'),
+            'services.google.client_id' => $this->settings->get($userId, 'google_client_id'),
+            'services.google.client_secret' => $this->settings->get($userId, 'google_client_secret'),
             'services.google.redirect' => url('/auth/google/callback'),
         ]);
     }

@@ -2,8 +2,9 @@
 
 namespace App\Jobs;
 
-use App\Models\GaProperty;
 use App\Models\PropertySnapshot;
+use App\Models\User;
+use App\Services\SettingService;
 use App\Services\SnapshotAnalyzerService;
 use App\Services\TelegramNotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,37 +21,44 @@ class GenerateDailySnapshots implements ShouldQueue
 
     public int $timeout = 600;
 
-    public function handle(SnapshotAnalyzerService $analyzer, TelegramNotificationService $telegram): void
+    public function handle(SnapshotAnalyzerService $analyzer, TelegramNotificationService $telegram, SettingService $settings): void
     {
         $yesterday = Carbon::yesterday();
 
-        $properties = GaProperty::where('is_active', true)
-            ->whereHas('gaConnection', fn ($q) => $q->where('is_active', true))
-            ->with('gaConnection')
-            ->get();
-
-        if ($properties->isEmpty()) {
-            Log::info('GenerateDailySnapshots: no active properties found.');
-
-            return;
-        }
-
-        /** @var Collection<int, PropertySnapshot> $snapshots */
-        $snapshots = collect();
-
-        foreach ($properties as $property) {
-            try {
-                $snapshot = $analyzer->analyze($property, $yesterday);
-                $snapshots->push($snapshot);
-
-                Log::info("Snapshot generated for property {$property->display_name} ({$property->property_id}): trend={$snapshot->trend}");
-            } catch (\Throwable $e) {
-                Log::warning("Failed to generate snapshot for property {$property->property_id}: {$e->getMessage()}");
+        User::each(function (User $user) use ($analyzer, $telegram, $settings, $yesterday) {
+            if ($settings->get($user->id, 'snapshot_enabled', '1') !== '1') {
+                return;
             }
-        }
 
-        if ($snapshots->isNotEmpty()) {
-            $telegram->sendDailyDigest($snapshots, $yesterday);
-        }
+            $properties = $user->gaProperties()
+                ->where('is_active', true)
+                ->whereHas('gaConnection', fn ($q) => $q->where('is_active', true))
+                ->with('gaConnection')
+                ->get();
+
+            if ($properties->isEmpty()) {
+                return;
+            }
+
+            /** @var Collection<int, PropertySnapshot> $snapshots */
+            $snapshots = collect();
+
+            foreach ($properties as $property) {
+                try {
+                    $snapshot = $analyzer->analyze($property, $yesterday);
+                    $snapshots->push($snapshot);
+
+                    Log::info("Snapshot generated for {$property->display_name} (user {$user->id}): trend={$snapshot->trend}");
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to generate snapshot for {$property->property_id} (user {$user->id}): {$e->getMessage()}");
+                }
+            }
+
+            $sendTelegram = $settings->get($user->id, 'snapshot_telegram', '1') === '1';
+
+            if ($snapshots->isNotEmpty() && $sendTelegram) {
+                $telegram->sendDailyDigest($snapshots, $yesterday, $user->id);
+            }
+        });
     }
 }

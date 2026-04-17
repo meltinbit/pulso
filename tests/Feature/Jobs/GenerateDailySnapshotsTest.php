@@ -4,6 +4,7 @@ use App\Jobs\GenerateDailySnapshots;
 use App\Models\GaConnection;
 use App\Models\GaProperty;
 use App\Models\PropertySnapshot;
+use App\Services\SettingService;
 use App\Services\SnapshotAnalyzerService;
 use App\Services\TelegramNotificationService;
 use Illuminate\Support\Facades\Http;
@@ -11,9 +12,6 @@ use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     Http::preventStrayRequests();
-
-    config(['services.telegram.bot_token' => 'test-token']);
-    config(['services.telegram.chat_id' => '12345']);
 });
 
 function fakeAllGaAndTelegram(): void
@@ -39,11 +37,15 @@ test('job creates snapshots for all active properties', function () {
         'is_active' => true,
     ]);
 
+    app(SettingService::class)->set($connection->user_id, 'telegram_bot_token', 'test-token', 'telegram', true);
+    app(SettingService::class)->set($connection->user_id, 'telegram_chat_id', '12345', 'telegram');
+
     fakeAllGaAndTelegram();
 
     (new GenerateDailySnapshots)->handle(
         app(SnapshotAnalyzerService::class),
         app(TelegramNotificationService::class),
+        app(SettingService::class),
     );
 
     expect(PropertySnapshot::count())->toBe(1);
@@ -60,6 +62,7 @@ test('job skips inactive properties', function () {
     (new GenerateDailySnapshots)->handle(
         app(SnapshotAnalyzerService::class),
         app(TelegramNotificationService::class),
+        app(SettingService::class),
     );
 
     expect(PropertySnapshot::count())->toBe(0);
@@ -76,6 +79,7 @@ test('job skips properties with inactive connections', function () {
     (new GenerateDailySnapshots)->handle(
         app(SnapshotAnalyzerService::class),
         app(TelegramNotificationService::class),
+        app(SettingService::class),
     );
 
     expect(PropertySnapshot::count())->toBe(0);
@@ -111,12 +115,16 @@ test('job continues processing after individual property failure', function () {
         'api.telegram.org/*' => Http::response(['ok' => true]),
     ]);
 
+    app(SettingService::class)->set($connection->user_id, 'telegram_bot_token', 'test-token', 'telegram', true);
+    app(SettingService::class)->set($connection->user_id, 'telegram_chat_id', '12345', 'telegram');
+
     Log::shouldReceive('warning')->once();
     Log::shouldReceive('info')->once();
 
     (new GenerateDailySnapshots)->handle(
         app(SnapshotAnalyzerService::class),
         app(TelegramNotificationService::class),
+        app(SettingService::class),
     );
 
     // Only property 2 should have a snapshot
@@ -131,11 +139,15 @@ test('job sends Telegram digest after generating snapshots', function () {
         'is_active' => true,
     ]);
 
+    app(SettingService::class)->set($connection->user_id, 'telegram_bot_token', 'test-token', 'telegram', true);
+    app(SettingService::class)->set($connection->user_id, 'telegram_chat_id', '12345', 'telegram');
+
     fakeAllGaAndTelegram();
 
     (new GenerateDailySnapshots)->handle(
         app(SnapshotAnalyzerService::class),
         app(TelegramNotificationService::class),
+        app(SettingService::class),
     );
 
     Http::assertSent(function ($request) {
@@ -143,12 +155,11 @@ test('job sends Telegram digest after generating snapshots', function () {
     });
 });
 
-test('job does nothing when no active properties exist', function () {
-    Log::shouldReceive('info')->once()->withArgs(fn ($msg) => str_contains($msg, 'no active properties'));
-
+test('job does nothing when no users have active properties', function () {
     (new GenerateDailySnapshots)->handle(
         app(SnapshotAnalyzerService::class),
         app(TelegramNotificationService::class),
+        app(SettingService::class),
     );
 
     expect(PropertySnapshot::count())->toBe(0);

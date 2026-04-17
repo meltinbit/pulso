@@ -10,23 +10,35 @@ use Illuminate\Support\Facades\Log;
 
 class TelegramNotificationService
 {
+    public function __construct(
+        private SettingService $settings,
+    ) {}
+
     /**
-     * Send the daily digest to Telegram.
+     * Send the daily digest to Telegram for a specific user.
      *
      * @param  Collection<int, PropertySnapshot>  $snapshots
      */
-    public function sendDailyDigest(Collection $snapshots, Carbon $date): bool
+    public function sendDailyDigest(Collection $snapshots, Carbon $date, ?int $userId = null): bool
     {
-        $token = config('services.telegram.bot_token');
-        $chatId = config('services.telegram.chat_id');
+        if ($snapshots->isEmpty()) {
+            return false;
+        }
 
-        if (! $token || ! $chatId) {
-            Log::warning('Telegram credentials not configured, skipping daily digest.');
+        $userId = $userId ?? $snapshots->first()->gaProperty->user_id ?? null;
+
+        if (! $userId) {
+            Log::warning('TelegramNotificationService: could not determine user_id.');
 
             return false;
         }
 
-        if ($snapshots->isEmpty()) {
+        $token = $this->settings->get($userId, 'telegram_bot_token');
+        $chatId = $this->settings->get($userId, 'telegram_chat_id');
+
+        if (! $token || ! $chatId) {
+            Log::warning('Telegram credentials not configured for user '.$userId.', skipping daily digest.');
+
             return false;
         }
 

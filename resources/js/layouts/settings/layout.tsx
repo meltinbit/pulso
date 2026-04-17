@@ -26,6 +26,16 @@ const sidebarNavItems: NavItem[] = [
         url: '/settings/google',
         icon: null,
     },
+    {
+        title: 'Snapshots',
+        url: '/settings/snapshots',
+        icon: null,
+    },
+    {
+        title: 'Telegram',
+        url: '/settings/telegram',
+        icon: null,
+    },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

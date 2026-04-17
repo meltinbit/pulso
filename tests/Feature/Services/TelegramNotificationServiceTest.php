@@ -3,6 +3,7 @@
 use App\Models\GaConnection;
 use App\Models\GaProperty;
 use App\Models\PropertySnapshot;
+use App\Services\SettingService;
 use App\Services\TelegramNotificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -10,15 +11,15 @@ use Illuminate\Support\Facades\Http;
 beforeEach(function () {
     Http::preventStrayRequests();
 
-    config(['services.telegram.bot_token' => 'test-bot-token']);
-    config(['services.telegram.chat_id' => '12345']);
-
     $this->connection = GaConnection::factory()->create();
     $this->property = GaProperty::factory()->create([
         'user_id' => $this->connection->user_id,
         'ga_connection_id' => $this->connection->id,
         'display_name' => 'Test Site',
     ]);
+
+    app(SettingService::class)->set($this->connection->user_id, 'telegram_bot_token', 'test-bot-token', 'telegram', true);
+    app(SettingService::class)->set($this->connection->user_id, 'telegram_chat_id', '12345', 'telegram');
 });
 
 test('sendDailyDigest sends message to Telegram', function () {
@@ -42,7 +43,8 @@ test('sendDailyDigest sends message to Telegram', function () {
 });
 
 test('sendDailyDigest returns false when no credentials', function () {
-    config(['services.telegram.bot_token' => null]);
+    app(SettingService::class)->set($this->connection->user_id, 'telegram_bot_token', null, 'telegram');
+    app(SettingService::class)->set($this->connection->user_id, 'telegram_chat_id', null, 'telegram');
 
     $snapshot = PropertySnapshot::factory()->create([
         'ga_property_id' => $this->property->id,

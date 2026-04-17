@@ -7,13 +7,17 @@ use App\Services\SettingService;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
+    $this->connection = GaConnection::factory()->create([
+        'token_expires_at' => now()->addHour(),
+    ]);
+
     $settings = app(SettingService::class);
-    $settings->set('google_client_id', 'test-client-id', 'google', encrypted: true);
-    $settings->set('google_client_secret', 'test-client-secret', 'google', encrypted: true);
+    $settings->set($this->connection->user_id, 'google_client_id', 'test-client-id', 'google', encrypted: true);
+    $settings->set($this->connection->user_id, 'google_client_secret', 'test-client-secret', 'google', encrypted: true);
 });
 
 test('returns existing token when not expired', function () {
-    $connection = GaConnection::factory()->create([
+    $connection = GaConnection::factory()->for($this->connection->user)->create([
         'token_expires_at' => now()->addHour(),
     ]);
 
@@ -32,7 +36,7 @@ test('refreshes token when expired', function () {
         ]),
     ]);
 
-    $connection = GaConnection::factory()->expired()->create();
+    $connection = GaConnection::factory()->for($this->connection->user)->expired()->create();
 
     $service = app(GoogleTokenService::class);
     $token = $service->getFreshToken($connection);
@@ -49,7 +53,7 @@ test('deactivates connection when refresh fails', function () {
         'oauth2.googleapis.com/token' => Http::response(['error' => 'invalid_grant'], 400),
     ]);
 
-    $connection = GaConnection::factory()->expired()->create();
+    $connection = GaConnection::factory()->for($this->connection->user)->expired()->create();
 
     $service = app(GoogleTokenService::class);
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppSetting;
 use App\Services\SettingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +17,8 @@ class GoogleSettingsController extends Controller
 
     public function edit(Request $request): Response
     {
-        $googleSettings = $this->settings->getGroup('google');
+        $userId = $request->user()->id;
+        $googleSettings = $this->settings->getGroup($userId, 'google');
 
         return Inertia::render('settings/google', [
             'settings' => [
@@ -41,8 +41,10 @@ class GoogleSettingsController extends Controller
             'google_client_secret' => ['required', 'string'],
         ]);
 
-        $this->settings->set('google_client_id', $validated['google_client_id'], 'google', encrypted: true);
-        $this->settings->set('google_client_secret', $validated['google_client_secret'], 'google', encrypted: true);
+        $userId = $request->user()->id;
+
+        $this->settings->set($userId, 'google_client_id', $validated['google_client_id'], 'google', encrypted: true);
+        $this->settings->set($userId, 'google_client_secret', $validated['google_client_secret'], 'google', encrypted: true);
 
         return back()->with('success', 'Credenziali Google salvate.');
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FunnelController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\SnapshotController;
 use App\Http\Controllers\TrafficReportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -31,6 +32,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('funnels', [FunnelController::class, 'store'])->name('funnels.store');
     Route::get('funnels/{funnel}', [FunnelController::class, 'show'])->name('funnels.show');
     Route::delete('funnels/{funnel}', [FunnelController::class, 'destroy'])->name('funnels.destroy');
+
+    Route::get('snapshots', [SnapshotController::class, 'index'])->name('snapshots.index');
+    Route::post('snapshots/generate', [SnapshotController::class, 'generate'])->name('snapshots.generate');
 
     Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
     Route::post('properties', [PropertyController::class, 'store'])->name('properties.store');

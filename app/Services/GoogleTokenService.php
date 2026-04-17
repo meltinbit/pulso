@@ -21,8 +21,8 @@ class GoogleTokenService
         $response = Http::timeout(10)
             ->connectTimeout(5)
             ->post('https://oauth2.googleapis.com/token', [
-                'client_id' => $this->settings->get('google_client_id'),
-                'client_secret' => $this->settings->get('google_client_secret'),
+                'client_id' => $this->settings->get($connection->user_id, 'google_client_id'),
+                'client_secret' => $this->settings->get($connection->user_id, 'google_client_secret'),
                 'refresh_token' => $connection->refresh_token,
                 'grant_type' => 'refresh_token',
             ]);

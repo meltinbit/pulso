@@ -11,4 +11,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new RefreshAnalyticsCache)->dailyAt('02:00')->withoutOverlapping();
-Schedule::job(new GenerateDailySnapshots)->dailyAt('07:00')->withoutOverlapping();
+Schedule::job(new GenerateDailySnapshots)->dailyAt('09:00')->withoutOverlapping();
