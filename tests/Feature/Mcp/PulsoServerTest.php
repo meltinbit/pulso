@@ -1,12 +1,14 @@
 <?php
 
 use App\Mcp\Servers\PulsoServer;
+use App\Mcp\Tools\GetPropertyEventsTool;
 use App\Mcp\Tools\GetPropertySnapshotsTool;
 use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
 use App\Mcp\Tools\ListPropertiesTool;
 use App\Models\GaProperty;
 use App\Models\PropertySnapshot;
+use App\Models\PropertySnapshotEvent;
 use App\Models\PropertySnapshotSource;
 
 it('lists active properties with latest snapshot', function () {
@@ -128,6 +130,59 @@ it('returns property summary with averages and anomalies', function () {
     $response->assertSee('Summary Site');
     $response->assertSee('spike');
     $response->assertSee('"users": 500');
+});
+
+it('aggregates events across date range and filters by event name', function () {
+    $property = GaProperty::factory()->create(['display_name' => 'Events Site']);
+
+    $snapshotA = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
+        'snapshot_date' => now()->subDays(2),
+    ]);
+    $snapshotB = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
+        'snapshot_date' => now()->subDays(1),
+    ]);
+    PropertySnapshot::factory()->for($property, 'gaProperty')->create([
+        'snapshot_date' => now()->subDays(40),
+    ])->events()->create([
+        'event_name' => 'calcolo_eseguito',
+        'event_count' => 9999,
+        'total_users' => 9999,
+    ]);
+
+    PropertySnapshotEvent::factory()->for($snapshotA, 'snapshot')->create([
+        'event_name' => 'calcolo_eseguito',
+        'event_count' => 40,
+        'total_users' => 30,
+    ]);
+    PropertySnapshotEvent::factory()->for($snapshotB, 'snapshot')->create([
+        'event_name' => 'calcolo_eseguito',
+        'event_count' => 60,
+        'total_users' => 50,
+    ]);
+    PropertySnapshotEvent::factory()->for($snapshotB, 'snapshot')->create([
+        'event_name' => 'page_view',
+        'event_count' => 1000,
+        'total_users' => 500,
+    ]);
+
+    $response = PulsoServer::tool(GetPropertyEventsTool::class, [
+        'property_id' => $property->id,
+        'from' => now()->subDays(7)->toDateString(),
+        'to' => now()->toDateString(),
+        'event_name' => 'calcolo_eseguito',
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('Events Site');
+    $response->assertSee('calcolo_eseguito');
+    $response->assertSee('"total_event_count": 100');
+    $response->assertSee('"total_users": 80');
+});
+
+it('validates property_id is required for events', function () {
+    $response = PulsoServer::tool(GetPropertyEventsTool::class, []);
+
+    $response->assertHasErrors();
 });
 
 it('returns message when property has no snapshots', function () {

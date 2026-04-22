@@ -5,9 +5,13 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 
 interface EventItem {
     name: string;
+    label: string;
+    phrase: string | null;
     count: number;
     users: number;
-    label: string;
+    users_previous: number;
+    delta_users_pct: number | null;
+    is_custom: boolean;
 }
 
 interface DimensionItem {
@@ -193,24 +197,6 @@ export function PagesWidget({ data, delay = 0 }: { data: PageItem[]; delay?: num
     );
 }
 
-const EVENT_DESCRIPTIONS: Record<string, string> = {
-    page_view: 'Every time someone views a page on your site',
-    session_start: 'A new visit begins (user arrives on your site)',
-    first_visit: 'Someone visits your site for the very first time',
-    scroll: 'User scrolled to the bottom of a page (90%+)',
-    click: 'Click on a link leading to another website (e.g. App Store)',
-    user_engagement: 'User was actively engaged (10+ seconds on page)',
-    view_search_results: 'Someone used the search on your site',
-    file_download: 'A file was downloaded (PDF, ZIP, etc.)',
-    form_start: 'User started filling out a form',
-    form_submit: 'User submitted a form',
-    purchase: 'A purchase was completed',
-    add_to_cart: 'Item added to shopping cart',
-    begin_checkout: 'User started checkout process',
-    sign_up: 'New user registration',
-    login: 'User logged in',
-};
-
 export function EventsWidget({ data, delay = 0 }: { data: EventItem[]; delay?: number }) {
     if (data.length === 0) return null;
 
@@ -218,47 +204,84 @@ export function EventsWidget({ data, delay = 0 }: { data: EventItem[]; delay?: n
         <Card className="animate-fade-up lg:col-span-2" style={{ animationDelay: `${delay}ms` }}>
             <CardHeader className="pb-3">
                 <CardTitle className="text-muted-foreground text-sm font-medium uppercase tracking-wider">
-                    Top Events
+                    What people did
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="space-y-1">
-                    <div className="text-muted-foreground flex items-center gap-3 pb-1 text-xs font-medium uppercase tracking-wider">
-                        <span className="flex-1">Event</span>
-                        <span className="w-20 text-right">Count</span>
-                        <span className="w-16 text-right">Users</span>
-                    </div>
+                <div className="divide-border/60 divide-y">
                     {data.map((event) => (
-                        <div
-                            key={event.name}
-                            className="hover:bg-muted/50 group flex items-center gap-3 rounded-md py-2 transition-colors"
-                        >
+                        <div key={event.name} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                            <div className="flex min-w-[4rem] flex-col items-end">
+                                <span className="font-mono text-2xl font-semibold tabular-nums">
+                                    {event.users.toLocaleString()}
+                                </span>
+                                <span className="text-muted-foreground text-[10px] uppercase tracking-wider">
+                                    {event.users === 1 ? 'person' : 'people'}
+                                </span>
+                            </div>
                             <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">{event.label}</span>
-                                    {event.name === 'click' && (
-                                        <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-xs font-medium text-blue-400">
-                                            outbound
+                                <p className="text-sm leading-relaxed">
+                                    {event.phrase ? (
+                                        <span>{event.phrase}</span>
+                                    ) : (
+                                        <span>
+                                            triggered{' '}
+                                            <span className="font-mono text-xs rounded bg-muted px-1.5 py-0.5">
+                                                {event.name}
+                                            </span>
                                         </span>
                                     )}
-                                </div>
-                                {EVENT_DESCRIPTIONS[event.name] && (
-                                    <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
-                                        {EVENT_DESCRIPTIONS[event.name]}
-                                    </p>
-                                )}
+                                </p>
+                                <p className="text-muted-foreground mt-0.5 text-xs">
+                                    {event.count.toLocaleString()} {event.count === 1 ? 'time' : 'times'} in total
+                                </p>
                             </div>
-                            <span className="w-20 text-right font-mono text-sm font-medium">
-                                {event.count.toLocaleString()}
-                            </span>
-                            <span className="text-muted-foreground w-16 text-right font-mono text-xs">
-                                {event.users.toLocaleString()}
-                            </span>
+                            <DeltaBadge value={event.delta_users_pct} previous={event.users_previous} current={event.users} />
                         </div>
                     ))}
                 </div>
             </CardContent>
         </Card>
+    );
+}
+
+function DeltaBadge({
+    value,
+    previous,
+    current,
+}: {
+    value: number | null;
+    previous: number;
+    current: number;
+}) {
+    if (value === null) {
+        if (previous === 0 && current > 0) {
+            return (
+                <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-400">
+                    new
+                </span>
+            );
+        }
+        return <span className="text-muted-foreground/60 text-[11px]">—</span>;
+    }
+
+    const isFlat = Math.abs(value) < 1;
+    const isUp = value > 0;
+
+    const classes = isFlat
+        ? 'bg-muted text-muted-foreground'
+        : isUp
+          ? 'bg-emerald-500/10 text-emerald-400'
+          : 'bg-rose-500/10 text-rose-400';
+
+    const arrow = isFlat ? '→' : isUp ? '▲' : '▼';
+    const sign = value > 0 ? '+' : '';
+
+    return (
+        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums', classes)}>
+            {arrow} {sign}
+            {value}%
+        </span>
     );
 }
 

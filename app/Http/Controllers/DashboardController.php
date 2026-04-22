@@ -95,12 +95,21 @@ class DashboardController extends Controller
             'orderBys' => [['metric' => ['metricName' => 'sessions'], 'desc' => true]],
         ]);
 
-        // Top events
+        // Top events — current period
         $events = $this->ga->runReport($property, [
             'dateRanges' => [['startDate' => $range['start'], 'endDate' => 'today']],
             'dimensions' => [['name' => 'eventName']],
             'metrics' => [['name' => 'eventCount'], ['name' => 'totalUsers']],
-            'limit' => 15,
+            'limit' => 50,
+            'orderBys' => [['metric' => ['metricName' => 'eventCount'], 'desc' => true]],
+        ]);
+
+        // Top events — previous period (for WoW-style delta)
+        $eventsPrevious = $this->ga->runReport($property, [
+            'dateRanges' => [['startDate' => $range['compare'], 'endDate' => $range['compareEnd']]],
+            'dimensions' => [['name' => 'eventName']],
+            'metrics' => [['name' => 'eventCount'], ['name' => 'totalUsers']],
+            'limit' => 100,
             'orderBys' => [['metric' => ['metricName' => 'eventCount'], 'desc' => true]],
         ]);
 
@@ -120,7 +129,7 @@ class DashboardController extends Controller
             'devices' => $this->transformDimensionReport($devices),
             'pages' => $this->transformPagesReport($pages),
             'channels' => $this->transformDimensionReport($channels),
-            'events' => $this->transformEventsReport($events),
+            'events' => $this->transformEventsReport($events, $eventsPrevious),
             'realtime' => $realtimeUsers,
             'property' => $property->only('id', 'display_name', 'property_id'),
             'hasProperty' => true,
@@ -236,36 +245,87 @@ class DashboardController extends Controller
             ->toArray();
     }
 
-    /** @return array<int, array{name: string, count: int, users: int, label: string}> */
-    private function transformEventsReport(array $data): array
-    {
-        $labels = [
-            'page_view' => 'Page View',
-            'session_start' => 'Session Start',
-            'first_visit' => 'First Visit',
-            'scroll' => 'Scroll (90%)',
-            'click' => 'Outbound Click',
-            'user_engagement' => 'User Engagement',
-            'view_search_results' => 'Site Search',
-            'file_download' => 'File Download',
-            'form_start' => 'Form Start',
-            'form_submit' => 'Form Submit',
-            'purchase' => 'Purchase',
-            'add_to_cart' => 'Add to Cart',
-            'begin_checkout' => 'Begin Checkout',
-            'sign_up' => 'Sign Up',
-            'login' => 'Login',
-        ];
+    /**
+     * Events that are already reflected in top-level KPIs (users, sessions, engagement).
+     * Showing them again as "events" is noise.
+     */
+    private const REDUNDANT_EVENTS = ['page_view', 'session_start', 'user_engagement'];
 
-        return collect($data['rows'] ?? [])
+    /**
+     * Human-readable phrases for standard GA4 events.
+     * Form: "{N} people <phrase>". Keep lowercase, past-tense verb.
+     */
+    private const EVENT_PHRASES = [
+        'first_visit' => 'visited for the first time',
+        'scroll' => 'read a page to the end',
+        'click' => 'clicked a link to another site',
+        'file_download' => 'downloaded a file',
+        'view_search_results' => 'used your site search',
+        'form_start' => 'started filling out a form',
+        'form_submit' => 'submitted a form',
+        'purchase' => 'completed a purchase',
+        'add_to_cart' => 'added something to cart',
+        'begin_checkout' => 'started checkout',
+        'sign_up' => 'signed up',
+        'login' => 'logged in',
+        'video_start' => 'started a video',
+        'video_complete' => 'finished a video',
+    ];
+
+    /**
+     * @return array<int, array{name: string, label: string, phrase: string, count: int, users: int, users_previous: int, delta_users_pct: float|null, is_custom: bool}>
+     */
+    private function transformEventsReport(array $current, array $previous): array
+    {
+        $previousByName = collect($previous['rows'] ?? [])
+            ->mapWithKeys(fn ($row) => [
+                ($row['dimensionValues'][0]['value'] ?? '') => [
+                    'count' => (int) ($row['metricValues'][0]['value'] ?? 0),
+                    'users' => (int) ($row['metricValues'][1]['value'] ?? 0),
+                ],
+            ]);
+
+        return collect($current['rows'] ?? [])
             ->map(fn ($row) => [
                 'name' => $row['dimensionValues'][0]['value'] ?? '',
                 'count' => (int) ($row['metricValues'][0]['value'] ?? 0),
                 'users' => (int) ($row['metricValues'][1]['value'] ?? 0),
-                'label' => $labels[$row['dimensionValues'][0]['value'] ?? ''] ?? $row['dimensionValues'][0]['value'] ?? '',
             ])
+            ->reject(fn ($event) => in_array($event['name'], self::REDUNDANT_EVENTS, true) || $event['name'] === '')
+            ->sortByDesc('users')
+            ->values()
+            ->take(10)
+            ->map(function ($event) use ($previousByName) {
+                $prev = $previousByName->get($event['name'], ['count' => 0, 'users' => 0]);
+                $isCustom = ! array_key_exists($event['name'], self::EVENT_PHRASES);
+
+                return [
+                    'name' => $event['name'],
+                    'label' => $this->humanizeEventName($event['name']),
+                    'phrase' => self::EVENT_PHRASES[$event['name']] ?? null,
+                    'count' => $event['count'],
+                    'users' => $event['users'],
+                    'users_previous' => $prev['users'],
+                    'delta_users_pct' => $this->computeDeltaPercent($event['users'], $prev['users']),
+                    'is_custom' => $isCustom,
+                ];
+            })
             ->values()
             ->toArray();
+    }
+
+    private function humanizeEventName(string $name): string
+    {
+        return ucfirst(str_replace('_', ' ', $name));
+    }
+
+    private function computeDeltaPercent(int $current, int $previous): ?float
+    {
+        if ($previous <= 0) {
+            return null;
+        }
+
+        return round((($current - $previous) / $previous) * 100, 1);
     }
 
     private function formatDuration(float $seconds): string

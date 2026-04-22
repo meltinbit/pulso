@@ -30,6 +30,7 @@ class SnapshotAnalyzerService
         $sourcesData = $this->fetchSources($property, $yesterday, $yesterday);
         $engagementData = $this->fetchEngagementMetrics($property, $yesterday, $yesterday);
         $pagesData = $this->fetchPages($property, $yesterday, $yesterday);
+        $eventsData = $this->fetchEvents($property, $yesterday, $yesterday);
 
         $users = $this->extractMetric($yesterdayData, 0);
         $sessions = $this->extractMetric($yesterdayData, 1);
@@ -63,6 +64,7 @@ class SnapshotAnalyzerService
         $pagesPerSession = $sessions > 0 ? round($pageviews / $sessions, 2) : 0;
 
         $topPages = $this->parsePages($pagesData);
+        $topEvents = $this->parseEvents($eventsData);
 
         $snapshot = PropertySnapshot::updateOrCreate(
             ['ga_property_id' => $property->id, 'snapshot_date' => $snapshotDate],
@@ -104,6 +106,11 @@ class SnapshotAnalyzerService
         $snapshot->pages()->delete();
         foreach ($topPages as $page) {
             $snapshot->pages()->create($page);
+        }
+
+        $snapshot->events()->delete();
+        foreach ($topEvents as $event) {
+            $snapshot->events()->create($event);
         }
 
         $searchQueries = $this->searchConsole->fetchSearchQueries($property, $yesterday);
@@ -306,6 +313,50 @@ class SnapshotAnalyzerService
         }
 
         return $sources;
+    }
+
+    /**
+     * Fetch top events (custom and standard) by eventCount for a date range.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchEvents(GaProperty $property, string $startDate, string $endDate): array
+    {
+        return $this->gaClient->runReport($property, [
+            'dateRanges' => [['startDate' => $startDate, 'endDate' => $endDate]],
+            'dimensions' => [
+                ['name' => 'eventName'],
+            ],
+            'metrics' => [
+                ['name' => 'eventCount'],
+                ['name' => 'totalUsers'],
+            ],
+            'orderBys' => [
+                ['metric' => ['metricName' => 'eventCount'], 'desc' => true],
+            ],
+            'limit' => 50,
+        ]);
+    }
+
+    /**
+     * Parse GA4 events response into a structured array.
+     *
+     * @return array<int, array{event_name: string, event_count: int, total_users: int}>
+     */
+    private function parseEvents(array $response): array
+    {
+        $rows = data_get($response, 'rows', []);
+        $events = [];
+
+        foreach ($rows as $row) {
+            $events[] = [
+                'event_name' => data_get($row, 'dimensionValues.0.value', ''),
+                'event_count' => (int) data_get($row, 'metricValues.0.value', 0),
+                'total_users' => (int) data_get($row, 'metricValues.1.value', 0),
+            ];
+        }
+
+        return $events;
     }
 
     /**

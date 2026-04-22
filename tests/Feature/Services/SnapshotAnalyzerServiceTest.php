@@ -3,6 +3,7 @@
 use App\Models\GaConnection;
 use App\Models\GaProperty;
 use App\Models\PropertySnapshot;
+use App\Models\PropertySnapshotEvent;
 use App\Models\PropertySnapshotSource;
 use App\Services\SnapshotAnalyzerService;
 use Illuminate\Support\Carbon;
@@ -102,6 +103,19 @@ function fakeGaResponses(int $users = 500, int $sessions = 700, int $pageviews =
                         ],
                     ],
                 ],
+            ])
+            // Events
+            ->push([
+                'rows' => [
+                    [
+                        'dimensionValues' => [['value' => 'page_view']],
+                        'metricValues' => [['value' => '2000'], ['value' => '500']],
+                    ],
+                    [
+                        'dimensionValues' => [['value' => 'calcolo_eseguito']],
+                        'metricValues' => [['value' => '120'], ['value' => '80']],
+                    ],
+                ],
             ]),
         'searchconsole.googleapis.com/*' => Http::response([
             'rows' => [
@@ -139,6 +153,19 @@ test('analyze creates snapshot sources', function () {
     expect($googleSource->medium)->toBe('organic');
     expect($googleSource->sessions)->toBe(300);
     expect($googleSource->users)->toBe(250);
+});
+
+test('analyze creates snapshot events', function () {
+    fakeGaResponses();
+
+    $service = app(SnapshotAnalyzerService::class);
+    $snapshot = $service->analyze($this->property, Carbon::yesterday());
+
+    expect(PropertySnapshotEvent::where('property_snapshot_id', $snapshot->id)->count())->toBe(2);
+
+    $custom = $snapshot->events->firstWhere('event_name', 'calcolo_eseguito');
+    expect($custom->event_count)->toBe(120);
+    expect($custom->total_users)->toBe(80);
 });
 
 test('analyze computes WoW delta correctly', function () {

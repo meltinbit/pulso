@@ -84,4 +84,9 @@ class PropertySnapshot extends Model
     {
         return $this->hasMany(PropertySnapshotSearchQuery::class);
     }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(PropertySnapshotEvent::class);
+    }
 }

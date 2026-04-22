@@ -41,9 +41,13 @@ interface PageItem {
 
 interface EventItem {
     name: string;
+    label: string;
+    phrase: string | null;
     count: number;
     users: number;
-    label: string;
+    users_previous: number;
+    delta_users_pct: number | null;
+    is_custom: boolean;
 }
 
 interface DashboardProps {
