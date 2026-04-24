@@ -93,7 +93,9 @@ export default function SnapshotSettings({ settings, properties }: SnapshotSetti
                                 placeholder="09:00"
                                 maxLength={5}
                             />
-                            <p className="text-muted-foreground text-xs">Format HH:MM in UTC. Default: 09:00.</p>
+                            <p className="text-muted-foreground text-xs">
+                                Format HH:MM in UTC. Default: 09:00. Runs at the top of the selected hour (minutes are ignored).
+                            </p>
                         </div>
 
                         <div className="flex items-center justify-between rounded-lg border p-4">

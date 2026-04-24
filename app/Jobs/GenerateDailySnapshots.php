@@ -23,10 +23,17 @@ class GenerateDailySnapshots implements ShouldQueue
 
     public function handle(SnapshotAnalyzerService $analyzer, TelegramNotificationService $telegram, SettingService $settings): void
     {
-        $yesterday = Carbon::yesterday();
+        $yesterday = Carbon::yesterday('UTC');
+        $currentHour = now('UTC')->format('H');
 
-        User::each(function (User $user) use ($analyzer, $telegram, $settings, $yesterday) {
+        User::each(function (User $user) use ($analyzer, $telegram, $settings, $yesterday, $currentHour) {
             if ($settings->get($user->id, 'snapshot_enabled', '1') !== '1') {
+                return;
+            }
+
+            $snapshotTime = $settings->get($user->id, 'snapshot_time', '09:00') ?? '09:00';
+
+            if (substr($snapshotTime, 0, 2) !== $currentHour) {
                 return;
             }
 

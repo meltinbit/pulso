@@ -7,11 +7,13 @@ use App\Models\PropertySnapshot;
 use App\Services\SettingService;
 use App\Services\SnapshotAnalyzerService;
 use App\Services\TelegramNotificationService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     Http::preventStrayRequests();
+    Carbon::setTestNow(Carbon::parse('2026-04-24 09:00:00', 'UTC'));
 });
 
 function fakeAllGaAndTelegram(): void
@@ -165,4 +167,71 @@ test('job does nothing when no users have active properties', function () {
     );
 
     expect(PropertySnapshot::count())->toBe(0);
+});
+
+test('job runs for user whose snapshot_time hour matches current UTC hour', function () {
+    Carbon::setTestNow(Carbon::parse('2026-04-24 05:00:00', 'UTC'));
+
+    $connection = GaConnection::factory()->create();
+    GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'is_active' => true,
+    ]);
+
+    app(SettingService::class)->set($connection->user_id, 'snapshot_time', '05:00', 'snapshots');
+
+    fakeAllGaAndTelegram();
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+        app(SettingService::class),
+    );
+
+    expect(PropertySnapshot::count())->toBe(1);
+});
+
+test('job skips user whose snapshot_time hour does not match current UTC hour', function () {
+    Carbon::setTestNow(Carbon::parse('2026-04-24 09:00:00', 'UTC'));
+
+    $connection = GaConnection::factory()->create();
+    GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'is_active' => true,
+    ]);
+
+    app(SettingService::class)->set($connection->user_id, 'snapshot_time', '05:00', 'snapshots');
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+        app(SettingService::class),
+    );
+
+    expect(PropertySnapshot::count())->toBe(0);
+});
+
+test('job ignores minutes and matches only on hour', function () {
+    Carbon::setTestNow(Carbon::parse('2026-04-24 05:00:00', 'UTC'));
+
+    $connection = GaConnection::factory()->create();
+    GaProperty::factory()->create([
+        'user_id' => $connection->user_id,
+        'ga_connection_id' => $connection->id,
+        'is_active' => true,
+    ]);
+
+    app(SettingService::class)->set($connection->user_id, 'snapshot_time', '05:30', 'snapshots');
+
+    fakeAllGaAndTelegram();
+
+    (new GenerateDailySnapshots)->handle(
+        app(SnapshotAnalyzerService::class),
+        app(TelegramNotificationService::class),
+        app(SettingService::class),
+    );
+
+    expect(PropertySnapshot::count())->toBe(1);
 });
