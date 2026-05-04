@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\GaProperty;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -22,6 +23,8 @@ class SearchConsoleService
         $siteUrl = $this->resolveSiteUrl($property);
 
         if (! $siteUrl) {
+            Log::warning("Search Console: no matching site for {$property->display_name} ({$property->website_url})");
+
             return [];
         }
 
@@ -43,7 +46,8 @@ class SearchConsoleService
             );
 
         if ($response->failed()) {
-            Log::warning("Search Console API error for {$property->display_name}: {$response->body()}");
+            Log::warning("Search Console API error for {$property->display_name} ({$siteUrl}): HTTP {$response->status()} {$response->body()}");
+            $this->forgetCachedSiteUrl($property);
 
             return [];
         }
@@ -81,8 +85,10 @@ class SearchConsoleService
     }
 
     /**
-     * Resolve the Search Console site URL from the property's website_url.
-     * Search Console uses formats like "sc-domain:example.com" or "https://example.com/".
+     * Resolve the Search Console site identifier from the property's website_url.
+     * Prefers a Domain property ("sc-domain:host"), falls back to a URL-prefix
+     * site that matches the same host (with or without "www."). Result is cached
+     * per property because the Search Console site list rarely changes.
      */
     private function resolveSiteUrl(GaProperty $property): ?string
     {
@@ -98,7 +104,58 @@ class SearchConsoleService
             return null;
         }
 
-        return urlencode("sc-domain:{$host}");
+        $cached = Cache::get($this->cacheKey($property));
+
+        if ($cached !== null) {
+            return $cached === '' ? null : $cached;
+        }
+
+        $sites = $this->listSites($property);
+        $resolved = $this->pickMatchingSite($sites, $host);
+
+        Cache::put($this->cacheKey($property), $resolved ?? '', now()->addDay());
+
+        return $resolved;
+    }
+
+    /**
+     * @param  array<int, string>  $sites
+     */
+    private function pickMatchingSite(array $sites, string $host): ?string
+    {
+        $domainCandidate = "sc-domain:{$host}";
+
+        if (in_array($domainCandidate, $sites, true)) {
+            return urlencode($domainCandidate);
+        }
+
+        $bareHost = str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+
+        foreach ($sites as $site) {
+            $siteHost = parse_url($site, PHP_URL_HOST);
+
+            if (! $siteHost) {
+                continue;
+            }
+
+            $siteBare = str_starts_with($siteHost, 'www.') ? substr($siteHost, 4) : $siteHost;
+
+            if ($siteBare === $bareHost) {
+                return urlencode($site);
+            }
+        }
+
+        return null;
+    }
+
+    private function cacheKey(GaProperty $property): string
+    {
+        return "sc:site_url:{$property->id}";
+    }
+
+    private function forgetCachedSiteUrl(GaProperty $property): void
+    {
+        Cache::forget($this->cacheKey($property));
     }
 
     /**

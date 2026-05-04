@@ -36,7 +36,12 @@ test('google callback creates a new connection', function () {
         'email' => 'test@gmail.com',
     ])->setToken('fake-token')
         ->setRefreshToken('fake-refresh-token')
-        ->setExpiresIn(3600));
+        ->setExpiresIn(3600)
+        ->setApprovedScopes([
+            'https://www.googleapis.com/auth/analytics.readonly',
+            'https://www.googleapis.com/auth/webmasters.readonly',
+            'openid',
+        ]));
 
     $response = $this
         ->actingAs($this->user)
@@ -49,6 +54,7 @@ test('google callback creates a new connection', function () {
     expect($connection->google_id)->toBe('google-123');
     expect($connection->google_email)->toBe('test@gmail.com');
     expect($connection->is_active)->toBeTrue();
+    expect($connection->scopes)->toBe('analytics.readonly webmasters.readonly openid');
 });
 
 test('google callback updates existing connection', function () {

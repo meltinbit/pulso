@@ -47,6 +47,7 @@ class GoogleAuthController extends Controller
                 'access_token' => $googleUser->token,
                 'refresh_token' => $googleUser->refreshToken,
                 'token_expires_at' => now()->addSeconds($googleUser->expiresIn),
+                'scopes' => $this->normalizeScopes($googleUser->approvedScopes ?? []),
                 'is_active' => true,
             ]
         );
@@ -62,6 +63,16 @@ class GoogleAuthController extends Controller
         $connection->update(['is_active' => false]);
 
         return back()->with('success', 'Account Google scollegato.');
+    }
+
+    /**
+     * @param  array<int, string>  $scopes
+     */
+    private function normalizeScopes(array $scopes): string
+    {
+        return collect($scopes)
+            ->map(fn (string $scope): string => str_replace('https://www.googleapis.com/auth/', '', $scope))
+            ->implode(' ');
     }
 
     private function configureGoogleDriver(Request $request): void

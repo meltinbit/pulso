@@ -41,15 +41,58 @@ class SnapshotController extends Controller
             return back()->with('error', 'Nessuna proprietà attiva.');
         }
 
-        $date = Carbon::yesterday();
-
+        $targetDate = Carbon::yesterday();
+        
+        // Find the latest snapshot for this property
+        $latestSnapshot = $property->snapshots()
+            ->latest('snapshot_date')
+            ->first();
+        
+        $snapshotsGenerated = 0;
+        $messages = [];
+        
         try {
-            $snapshot = $analyzer->analyze($property, $date);
-
-            return back()->with('success', "Snapshot generato per {$date->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})");
+            if ($latestSnapshot) {
+                $lastSnapshotDate = Carbon::parse($latestSnapshot->snapshot_date);
+                
+                // If there's a gap between the latest snapshot and yesterday
+                if ($lastSnapshotDate->lt($targetDate)) {
+                    // Create snapshots for each missing day
+                    $currentDate = $lastSnapshotDate->copy()->addDay();
+                    
+                    while ($currentDate->lte($targetDate)) {
+                        $snapshot = $analyzer->analyze($property, $currentDate);
+                        $messages[] = "Snapshot generato per {$currentDate->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})";
+                        $snapshotsGenerated++;
+                        $currentDate->addDay();
+                    }
+                } else {
+                    // If no gap, just create for yesterday if not already created
+                    if (!$lastSnapshotDate->isSameDay($targetDate)) {
+                        $snapshot = $analyzer->analyze($property, $targetDate);
+                        $messages[] = "Snapshot generato per {$targetDate->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})";
+                        $snapshotsGenerated++;
+                    } else {
+                        // Update the snapshot for yesterday
+                        $snapshot = $analyzer->analyze($property, $targetDate);
+                        $messages[] = "Snapshot aggiornato per {$targetDate->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})";
+                        $snapshotsGenerated++;
+                    }
+                }
+            } else {
+                // No previous snapshots, create one for yesterday
+                $snapshot = $analyzer->analyze($property, $targetDate);
+                $messages[] = "Snapshot generato per {$targetDate->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})";
+                $snapshotsGenerated++;
+            }
+            
+            if ($snapshotsGenerated > 1) {
+                return back()->with('success', "Generati $snapshotsGenerated snapshots per recuperare i dati mancanti.");
+            } else {
+                return back()->with('success', $messages[0]);
+            }
         } catch (\Throwable $e) {
             Log::warning("Manual snapshot failed for {$property->display_name}: {$e->getMessage()}");
-
             return back()->with('error', "Errore: {$e->getMessage()}");
         }
     }
