@@ -2,6 +2,7 @@
 
 use App\Mcp\Servers\PulsoServer;
 use App\Mcp\Tools\GetPropertyEventsTool;
+use App\Mcp\Tools\GetPropertyIndexStatusTool;
 use App\Mcp\Tools\GetPropertySnapshotsTool;
 use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
@@ -10,6 +11,7 @@ use App\Models\GaProperty;
 use App\Models\PropertySnapshot;
 use App\Models\PropertySnapshotEvent;
 use App\Models\PropertySnapshotSource;
+use Illuminate\Support\Facades\Http;
 
 it('lists active properties with latest snapshot', function () {
     $property = GaProperty::factory()->create(['display_name' => 'Test Site']);
@@ -194,4 +196,48 @@ it('returns message when property has no snapshots', function () {
 
     $response->assertOk();
     $response->assertSee('No snapshots available');
+});
+
+it('returns index status inspection results for provided urls', function () {
+    $property = GaProperty::factory()->create([
+        'display_name' => 'Index Site',
+        'website_url' => 'https://example.com',
+    ]);
+
+    Http::fake([
+        'searchconsole.googleapis.com/webmasters/v3/sites' => Http::response([
+            'siteEntry' => [['siteUrl' => 'sc-domain:example.com']],
+        ]),
+        'searchconsole.googleapis.com/v1/urlInspection/index:inspect' => Http::sequence()
+            ->push([
+                'inspectionResult' => [
+                    'indexStatusResult' => [
+                        'verdict' => 'PASS',
+                        'coverageState' => 'Submitted and indexed',
+                    ],
+                ],
+            ])
+            ->push([
+                'inspectionResult' => [
+                    'indexStatusResult' => [
+                        'verdict' => 'NEUTRAL',
+                        'coverageState' => 'Excluded by noindex tag',
+                    ],
+                ],
+            ]),
+    ]);
+
+    $response = PulsoServer::tool(GetPropertyIndexStatusTool::class, [
+        'property_id' => $property->id,
+        'urls' => [
+            'https://example.com/indexed',
+            'https://example.com/excluded',
+        ],
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('Index Site');
+    $response->assertSee('"indexed_count": 1');
+    $response->assertSee('"not_indexed_count": 1');
+    $response->assertSee('Excluded by noindex tag');
 });

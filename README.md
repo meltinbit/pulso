@@ -2,7 +2,7 @@
 
 ![Pulso](public/pulso.png)
 
-GA4 Dashboard SaaS for agencies and freelancers. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4. Includes daily analytics snapshots with trend analysis, Google Search Console integration, Telegram notifications, and an MCP server for AI-powered insights via Claude.ai.
+GA4 Dashboard SaaS for agencies and freelancers. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4. Includes daily analytics snapshots with trend analysis, Google Search Console integration, live URL index inspection, Telegram notifications, and an MCP server for AI-powered insights via Claude.ai.
 
 ## Requirements
 
@@ -209,9 +209,19 @@ Pulso exposes an MCP server at `/mcp/pulso` that allows AI clients (like Claude.
 | `get-property-sources` | Get aggregated traffic sources for a property |
 | `get-property-pages` | Get top pages with per-page engagement metrics |
 | `get-property-search-queries` | Get top Google Search Console queries |
+| `get-property-index-status` | Inspect indexed/non-indexed pages with coverage reasons |
 | `get-property-summary` | Comprehensive summary with averages, anomalies, sources, pages, and queries |
 
-All tools support date ranges (`from`/`to`) for trend analysis over time.
+All tools support date ranges (`from`/`to`) for trend analysis over time where applicable.
+
+`get-property-index-status` works in two modes:
+
+- pass explicit `urls` to inspect specific pages
+- omit `urls` to let the tool discover URLs from Search Console sitemaps (or a custom `sitemap_url`)
+
+It returns indexed vs non-indexed pages and coverage reasons such as `Crawled - currently not indexed`, `Excluded by noindex tag`, canonicalization exclusions, robots.txt blocks, and fetch errors.
+
+> **Note:** Google does not expose the full Search Console **Page indexing** report in bulk via API. Pulso uses the official URL Inspection API, so coverage is URL-level and reflects the URLs you pass in or discover from sitemaps.
 
 ### Connecting from Claude.ai
 
