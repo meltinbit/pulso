@@ -7,6 +7,7 @@ use App\Models\GaProperty;
 use App\Services\GaPropertyDiscoveryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -71,7 +72,7 @@ class PropertyController extends Controller
         return back()->with('success', 'Property rimossa.');
     }
 
-    public function switch(Request $request): RedirectResponse
+    public function switch(Request $request): RedirectResponse|SymfonyResponse
     {
         $request->validate([
             'property_id' => [
@@ -81,6 +82,10 @@ class PropertyController extends Controller
         ]);
 
         session(['active_property_id' => $request->property_id]);
+
+        if ($request->expectsJson()) {
+            return response()->noContent();
+        }
 
         return back();
     }

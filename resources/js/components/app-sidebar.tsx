@@ -3,9 +3,9 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
 import { ArrowRightLeft, Camera, FileText, Filter, Globe, LayoutGrid, Settings, Users } from 'lucide-react';
 import AppLogo from './app-logo';
+import { PropertyAwareLink } from './property-aware-link';
 import { PropertySwitcher } from './property-switcher';
 
 const mainNavItems: NavItem[] = [
@@ -61,9 +61,9 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
+                            <PropertyAwareLink href="/dashboard" prefetch>
                                 <AppLogo />
-                            </Link>
+                            </PropertyAwareLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

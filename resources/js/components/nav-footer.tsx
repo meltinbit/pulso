@@ -1,7 +1,7 @@
 import { Icon } from '@/components/icon';
 import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { PropertyAwareLink } from './property-aware-link';
 
 export function NavFooter({
     items,
@@ -28,10 +28,10 @@ export function NavFooter({
                                             <span>{item.title}</span>
                                         </a>
                                     ) : (
-                                        <Link href={item.url} prefetch>
+                                        <PropertyAwareLink href={item.url} prefetch>
                                             {item.icon && <Icon iconNode={item.icon} className="h-5 w-5" />}
                                             <span>{item.title}</span>
-                                        </Link>
+                                        </PropertyAwareLink>
                                     )}
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
