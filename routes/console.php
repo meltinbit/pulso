@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\CheckGoogleConnections;
 use App\Jobs\GenerateDailySnapshots;
 use App\Jobs\RefreshAnalyticsCache;
 use Illuminate\Foundation\Inspiring;
@@ -11,4 +12,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new RefreshAnalyticsCache)->dailyAt('02:00')->withoutOverlapping();
+Schedule::job(new CheckGoogleConnections)->hourly()->withoutOverlapping();
 Schedule::job(new GenerateDailySnapshots)->hourlyAt(0)->withoutOverlapping();

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\GoogleTokenExpiredException;
 use App\Models\GaConnection;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 class GoogleTokenService
 {
@@ -28,16 +29,29 @@ class GoogleTokenService
             ]);
 
         if ($response->failed()) {
+            $errorCode = (string) $response->json('error', '');
+
+            if (in_array($errorCode, ['invalid_grant', 'invalid_client'], true)) {
+                $connection->update(['is_active' => false]);
+
+                throw new GoogleTokenExpiredException;
+            }
+
+            throw new RuntimeException('Failed to refresh Google access token.');
+        }
+
+        $data = $response->json();
+
+        if (! isset($data['access_token'], $data['expires_in'])) {
             $connection->update(['is_active' => false]);
 
             throw new GoogleTokenExpiredException;
         }
 
-        $data = $response->json();
-
         $connection->update([
             'access_token' => $data['access_token'],
             'token_expires_at' => now()->addSeconds($data['expires_in']),
+            'is_active' => true,
         ]);
 
         return $data['access_token'];

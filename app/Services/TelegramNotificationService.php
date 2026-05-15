@@ -44,14 +44,39 @@ class TelegramNotificationService
 
         $message = $this->buildMessage($snapshots, $date);
 
-        $response = Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
-            'chat_id' => $chatId,
-            'text' => $message,
-            'parse_mode' => 'Markdown',
-        ]);
+        $response = $this->sendMessage($token, $chatId, $message, 'Markdown');
 
         if (! $response->successful()) {
             Log::warning('Failed to send Telegram digest: '.$response->body());
+
+            return false;
+        }
+
+        return true;
+    }
+
+    public function sendGoogleConnectionAlert(int $userId, string $googleEmail): bool
+    {
+        $token = $this->settings->get($userId, 'telegram_bot_token');
+        $chatId = $this->settings->get($userId, 'telegram_chat_id');
+
+        if (! $token || ! $chatId) {
+            Log::warning('Telegram credentials not configured for user '.$userId.', skipping Google connection alert.');
+
+            return false;
+        }
+
+        $message = implode("\n", [
+            "\xE2\x9A\xA0\xEF\xB8\x8F Pulso \xE2\x80\x94 Google connection issue",
+            '',
+            "The Google account `{$googleEmail}` needs to be reconnected.",
+            'Go to Settings > Google and connect the account again.',
+        ]);
+
+        $response = $this->sendMessage($token, $chatId, $message);
+
+        if (! $response->successful()) {
+            Log::warning('Failed to send Google connection alert: '.$response->body());
 
             return false;
         }
@@ -134,5 +159,19 @@ class TelegramNotificationService
         $sign = $wowDelta >= 0 ? '+' : '';
 
         return "{$sign}{$wowDelta}% vs settimana scorsa";
+    }
+
+    private function sendMessage(string $token, string $chatId, string $text, ?string $parseMode = null)
+    {
+        $payload = [
+            'chat_id' => $chatId,
+            'text' => $text,
+        ];
+
+        if ($parseMode !== null) {
+            $payload['parse_mode'] = $parseMode;
+        }
+
+        return Http::post("https://api.telegram.org/bot{$token}/sendMessage", $payload);
     }
 }
