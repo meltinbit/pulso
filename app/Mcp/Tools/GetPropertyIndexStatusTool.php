@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\GaProperty;
+use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Services\SearchConsoleService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Validator;
@@ -18,6 +18,8 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertyIndexStatusTool extends Tool
 {
+    use ResolvesMcpContext;
+
     public function __construct(
         private SearchConsoleService $searchConsole,
     ) {}
@@ -38,7 +40,7 @@ class GetPropertyIndexStatusTool extends Tool
             'verdict' => $request->get('verdict'),
             'language_code' => $request->get('language_code'),
         ], [
-            'property_id' => 'required|integer|exists:ga_properties,id',
+            'property_id' => 'required|integer',
             'urls' => 'nullable|array|min:1|max:50',
             'urls.*' => 'string|url',
             'sitemap_url' => 'nullable|url',
@@ -47,7 +49,7 @@ class GetPropertyIndexStatusTool extends Tool
             'language_code' => 'nullable|string|max:16',
         ])->validate();
 
-        $property = GaProperty::findOrFail($validated['property_id']);
+        $property = $this->resolveAuthorizedProperty($validated['property_id']);
         $limit = $validated['limit'] ?? 20;
         $verdictFilter = $validated['verdict'] ?? 'all';
         $languageCode = $validated['language_code'] ?? 'en-US';

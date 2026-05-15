@@ -3,6 +3,8 @@
 use App\Mcp\Servers\PulsoServer;
 use App\Mcp\Tools\GetPropertyEventsTool;
 use App\Mcp\Tools\GetPropertyIndexStatusTool;
+use App\Mcp\Tools\GetPropertyPagesTool;
+use App\Mcp\Tools\GetPropertySearchQueriesTool;
 use App\Mcp\Tools\GetPropertySnapshotsTool;
 use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
@@ -10,28 +12,39 @@ use App\Mcp\Tools\ListPropertiesTool;
 use App\Models\GaProperty;
 use App\Models\PropertySnapshot;
 use App\Models\PropertySnapshotEvent;
+use App\Models\PropertySnapshotPage;
+use App\Models\PropertySnapshotSearchQuery;
 use App\Models\PropertySnapshotSource;
+use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Http;
 
 it('lists active properties with latest snapshot', function () {
-    $property = GaProperty::factory()->create(['display_name' => 'Test Site']);
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create(['display_name' => 'Test Site']);
     PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => now()->subDay(),
         'trend' => 'improved',
         'trend_score' => 25.5,
     ]);
 
-    GaProperty::factory()->create(['is_active' => false]);
+    GaProperty::factory()->create(['display_name' => 'Other Site']);
 
     $response = PulsoServer::tool(ListPropertiesTool::class, []);
 
     $response->assertOk();
     $response->assertSee('Test Site');
     $response->assertSee('improved');
+    $response->assertDontSee('Other Site');
 });
 
 it('returns snapshots for a property within date range', function () {
-    $property = GaProperty::factory()->create();
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create();
 
     PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => now()->subDays(2),
@@ -57,13 +70,19 @@ it('returns snapshots for a property within date range', function () {
 });
 
 it('validates property_id is required for snapshots', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
     $response = PulsoServer::tool(GetPropertySnapshotsTool::class, []);
 
     $response->assertHasErrors();
 });
 
 it('returns aggregated traffic sources', function () {
-    $property = GaProperty::factory()->create();
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create();
     $snapshot = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => now()->subDay(),
     ]);
@@ -97,7 +116,10 @@ it('returns aggregated traffic sources', function () {
 });
 
 it('returns property summary with averages and anomalies', function () {
-    $property = GaProperty::factory()->create(['display_name' => 'Summary Site']);
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create(['display_name' => 'Summary Site']);
 
     PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => now()->subDays(3),
@@ -135,7 +157,10 @@ it('returns property summary with averages and anomalies', function () {
 });
 
 it('aggregates events across date range and filters by event name', function () {
-    $property = GaProperty::factory()->create(['display_name' => 'Events Site']);
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create(['display_name' => 'Events Site']);
 
     $snapshotA = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => now()->subDays(2),
@@ -182,13 +207,19 @@ it('aggregates events across date range and filters by event name', function () 
 });
 
 it('validates property_id is required for events', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
     $response = PulsoServer::tool(GetPropertyEventsTool::class, []);
 
     $response->assertHasErrors();
 });
 
 it('returns message when property has no snapshots', function () {
-    $property = GaProperty::factory()->create();
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create();
 
     $response = PulsoServer::tool(GetPropertySummaryTool::class, [
         'property_id' => $property->id,
@@ -199,7 +230,10 @@ it('returns message when property has no snapshots', function () {
 });
 
 it('returns index status inspection results for provided urls', function () {
-    $property = GaProperty::factory()->create([
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create([
         'display_name' => 'Index Site',
         'website_url' => 'https://example.com',
     ]);
@@ -240,4 +274,64 @@ it('returns index status inspection results for provided urls', function () {
     $response->assertSee('"indexed_count": 1');
     $response->assertSee('"not_indexed_count": 1');
     $response->assertSee('Excluded by noindex tag');
+});
+
+it('returns pages for the authenticated users property', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create(['display_name' => 'Pages Site']);
+    $snapshot = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
+        'snapshot_date' => now()->subDay(),
+    ]);
+
+    PropertySnapshotPage::factory()->for($snapshot, 'snapshot')->create([
+        'page_path' => '/landing',
+        'page_title' => 'Landing',
+        'pageviews' => 250,
+        'users' => 120,
+    ]);
+
+    $response = PulsoServer::tool(GetPropertyPagesTool::class, [
+        'property_id' => $property->id,
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('Landing');
+});
+
+it('returns search queries for the authenticated users property', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create(['display_name' => 'Queries Site']);
+    $snapshot = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
+        'snapshot_date' => now()->subDay(),
+    ]);
+
+    PropertySnapshotSearchQuery::factory()->for($snapshot, 'snapshot')->create([
+        'query' => 'pulso analytics',
+        'page' => '/analytics',
+        'clicks' => 42,
+        'impressions' => 400,
+    ]);
+
+    $response = PulsoServer::tool(GetPropertySearchQueriesTool::class, [
+        'property_id' => $property->id,
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('pulso analytics');
+});
+
+it('cannot access another users property through mcp tools', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($otherUser)->create();
+
+    expect(fn () => PulsoServer::tool(GetPropertySummaryTool::class, [
+        'property_id' => $property->id,
+    ]))->toThrow(ModelNotFoundException::class);
 });

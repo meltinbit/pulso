@@ -27,6 +27,11 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
     {
+        title: 'MCP',
+        url: '/settings/mcp',
+        icon: null,
+    },
+    {
         title: 'Snapshots',
         url: '/settings/snapshots',
         icon: null,

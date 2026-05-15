@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\GaProperty;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -16,11 +17,16 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class ListPropertiesTool extends Tool
 {
+    use ResolvesMcpContext;
+
     public function handle(Request $request): Response
     {
-        $properties = GaProperty::with(['snapshots' => function ($query) {
-            $query->latest('snapshot_date')->limit(1);
-        }])->where('is_active', true)->get();
+        $properties = $this->currentUser()->gaProperties()
+            ->with(['snapshots' => function ($query) {
+                $query->latest('snapshot_date')->limit(1);
+            }])
+            ->where('is_active', true)
+            ->get();
 
         $data = $properties->map(function (GaProperty $property) {
             $latest = $property->snapshots->first();

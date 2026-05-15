@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\GaProperty;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -16,13 +17,15 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertySummaryTool extends Tool
 {
+    use ResolvesMcpContext;
+
     public function handle(Request $request): Response
     {
         $validated = $request->validate([
-            'property_id' => 'required|integer|exists:ga_properties,id',
+            'property_id' => 'required|integer',
         ]);
 
-        $property = GaProperty::findOrFail($validated['property_id']);
+        $property = $this->resolveAuthorizedProperty($validated['property_id']);
         $latest = $property->snapshots()->latest('snapshot_date')->first();
 
         if (! $latest) {

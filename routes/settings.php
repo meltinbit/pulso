@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\GoogleSettingsController;
+use App\Http\Controllers\Settings\McpSettingsController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SnapshotSettingsController;
@@ -24,6 +25,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/google', [GoogleSettingsController::class, 'edit'])->name('settings.google');
     Route::put('settings/google', [GoogleSettingsController::class, 'update'])->name('settings.google.update');
+
+    Route::get('settings/mcp', [McpSettingsController::class, 'edit'])->name('settings.mcp');
+    Route::post('settings/mcp', [McpSettingsController::class, 'store'])->name('settings.mcp.store');
+    Route::delete('settings/mcp', [McpSettingsController::class, 'destroy'])->name('settings.mcp.destroy');
 
     Route::get('settings/snapshots', [SnapshotSettingsController::class, 'edit'])->name('settings.snapshots');
     Route::put('settings/snapshots', [SnapshotSettingsController::class, 'update'])->name('settings.snapshots.update');

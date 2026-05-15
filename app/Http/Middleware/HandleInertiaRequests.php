@@ -53,6 +53,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                'mcp_token' => $request->session()->get('mcp_token'),
             ],
         ]);
     }

@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\GaProperty;
+use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\PropertySnapshotPage;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -17,10 +17,12 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertyPagesTool extends Tool
 {
+    use ResolvesMcpContext;
+
     public function handle(Request $request): Response
     {
         $validated = $request->validate([
-            'property_id' => 'required|integer|exists:ga_properties,id',
+            'property_id' => 'required|integer',
             'from' => 'nullable|date',
             'to' => 'nullable|date|after_or_equal:from',
             'sort_by' => 'nullable|in:pageviews,bounce_rate,engagement_rate,users',
@@ -30,7 +32,7 @@ class GetPropertyPagesTool extends Tool
         $to = $validated['to'] ?? now()->toDateString();
         $sortBy = $validated['sort_by'] ?? 'pageviews';
 
-        $property = GaProperty::findOrFail($validated['property_id']);
+        $property = $this->resolveAuthorizedProperty($validated['property_id']);
 
         $snapshotIds = $property->snapshots()
             ->whereBetween('snapshot_date', [$from, $to])
