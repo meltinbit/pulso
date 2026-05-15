@@ -121,7 +121,7 @@ Credentials are stored in the database, not in `.env`:
 
 ## Environment Variables
 
-Google, Telegram, and snapshot settings are managed per-user via the UI (**Settings**). The only `.env` values are cache TTLs:
+Google, Telegram, MCP, and snapshot settings are managed per-user via the UI (**Settings**). The only `.env` values are cache TTLs:
 
 ```env
 # Cache TTL in seconds
@@ -200,6 +200,26 @@ Telegram credentials are stored encrypted in the database per-user — no `.env`
 
 Pulso exposes an MCP server at `/mcp/pulso` that allows AI clients (like Claude.ai) to analyze GA4 snapshot data.
 
+### Authentication
+
+The MCP endpoint is protected by a user-scoped token.
+
+To configure it:
+
+1. Go to **Settings > MCP**
+2. Click **Generate token**
+3. Copy the token or the full endpoint shown by the app
+
+The plain token is shown only once after generation. If you lose it, regenerate it from **Settings > MCP**.
+
+Supported auth methods:
+
+- Query string: `https://your-domain.com/mcp/pulso?token=YOUR_TOKEN`
+- Bearer token: `Authorization: Bearer YOUR_TOKEN`
+- Custom header: `X-MCP-Token: YOUR_TOKEN`
+
+Each token is tied to a single Pulso user. MCP tools only return properties owned by that user.
+
 ### Available Tools
 
 | Tool | Description |
@@ -228,7 +248,7 @@ It returns indexed vs non-indexed pages and coverage reasons such as `Crawled - 
 Add Pulso as a remote MCP server using your deployment URL:
 
 ```
-https://your-domain.com/mcp/pulso
+https://your-domain.com/mcp/pulso?token=YOUR_TOKEN
 ```
 
 All tools are read-only and expose snapshot data for AI-driven analysis.
