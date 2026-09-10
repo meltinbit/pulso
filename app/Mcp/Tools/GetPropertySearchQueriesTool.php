@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Get top Google Search Console queries for a GA4 property within a date range. Returns search query, landing page, clicks, impressions, CTR (%), and average position. Use this to identify SEO opportunities, low-CTR keywords to optimize, and high-impression queries that could drive more traffic.')]
+#[Description('Get the top 30 Google Search Console queries for a GA4 property within a date range. Clicks and impressions are true totals summed over every day in the range, while CTR (%) and average position are weighted by impressions. Also returns the landing page (full URL) that earned the most clicks for each query. Use this to identify SEO opportunities, low-CTR keywords to optimize, and high-impression queries that could drive more traffic.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetPropertySearchQueriesTool extends Tool
