@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\SearchConsoleApiException;
 use App\Models\GaProperty;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -10,38 +11,76 @@ use SimpleXMLElement;
 
 class SearchConsoleService
 {
+    /** Maximum rows Google returns per Search Analytics request. */
+    public const ROW_LIMIT = 25000;
+
+    /** Safety net so a runaway pagination loop cannot spin forever. */
+    private const MAX_PAGES = 40;
+
     public function __construct(
         private GoogleTokenService $tokenService,
     ) {}
 
     /**
-     * Fetch top search queries for a property on a given date.
+     * Fetch Search Analytics rows for a date range, broken down by date, query
+     * and page. Pages through `startRow` until Google stops returning full
+     * pages, so a range never silently loses rows past the first 25k.
      *
-     * @return array<int, array{query: string, page: string|null, clicks: int, impressions: int, ctr: float, position: float}>
+     * @return array<int, array{date: string, query: string, page: string|null, clicks: int, impressions: int, ctr: float, position: float}>
+     *
+     * @throws SearchConsoleApiException when the site cannot be resolved or the API call fails
      */
-    public function fetchSearchQueries(GaProperty $property, string $date, int $limit = 20): array
+    public function fetchDailyRows(GaProperty $property, string $startDate, string $endDate): array
     {
         $siteUrl = $this->resolveSiteUrl($property);
 
         if (! $siteUrl) {
             Log::warning("Search Console: no matching site for {$property->display_name} ({$property->website_url})");
 
-            return [];
+            throw new SearchConsoleApiException("No Search Console site matches {$property->display_name} ({$property->website_url}).");
         }
 
         $token = $this->tokenService->getFreshToken($property->gaConnection);
+        $rows = [];
+        $startRow = 0;
 
+        for ($page = 0; $page < self::MAX_PAGES; $page++) {
+            $batch = $this->requestSearchAnalytics($property, $siteUrl, $token, $startDate, $endDate, $startRow);
+            $rows = array_merge($rows, array_map($this->mapRow(...), $batch));
+
+            if (count($batch) < self::ROW_LIMIT) {
+                return $rows;
+            }
+
+            $startRow += self::ROW_LIMIT;
+        }
+
+        Log::warning("Search Console: hit the pagination cap for {$property->display_name} ({$startDate} to {$endDate}), rows may be truncated");
+
+        return $rows;
+    }
+
+    /**
+     * Perform a single Search Analytics page request.
+     *
+     * @return array<int, array<string, mixed>>
+     *
+     * @throws SearchConsoleApiException
+     */
+    private function requestSearchAnalytics(GaProperty $property, string $siteUrl, string $token, string $startDate, string $endDate, int $startRow): array
+    {
         $response = Http::withToken($token)
-            ->timeout(30)
+            ->timeout(120)
             ->connectTimeout(5)
-            ->retry(2, 1000, throw: false)
+            ->retry(3, 2000, throw: false)
             ->post(
                 "https://searchconsole.googleapis.com/webmasters/v3/sites/{$siteUrl}/searchAnalytics/query",
                 [
-                    'startDate' => $date,
-                    'endDate' => $date,
-                    'dimensions' => ['query', 'page'],
-                    'rowLimit' => $limit,
+                    'startDate' => $startDate,
+                    'endDate' => $endDate,
+                    'dimensions' => ['date', 'query', 'page'],
+                    'rowLimit' => self::ROW_LIMIT,
+                    'startRow' => $startRow,
                     'type' => 'web',
                 ]
             );
@@ -50,17 +89,27 @@ class SearchConsoleService
             Log::warning("Search Console API error for {$property->display_name} ({$siteUrl}): HTTP {$response->status()} {$response->body()}");
             $this->forgetCachedSiteUrl($property);
 
-            return [];
+            throw new SearchConsoleApiException("Search Console API error for {$property->display_name}: HTTP {$response->status()}");
         }
 
-        return collect($response->json('rows', []))->map(fn ($row) => [
-            'query' => $row['keys'][0] ?? '',
-            'page' => $this->extractPath($row['keys'][1] ?? null, $property->website_url),
+        return $response->json('rows', []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{date: string, query: string, page: string|null, clicks: int, impressions: int, ctr: float, position: float}
+     */
+    private function mapRow(array $row): array
+    {
+        return [
+            'date' => $row['keys'][0] ?? '',
+            'query' => $row['keys'][1] ?? '',
+            'page' => $row['keys'][2] ?? null,
             'clicks' => (int) ($row['clicks'] ?? 0),
             'impressions' => (int) ($row['impressions'] ?? 0),
             'ctr' => round(($row['ctr'] ?? 0) * 100, 2),
             'position' => round($row['position'] ?? 0, 1),
-        ])->all();
+        ];
     }
 
     /**
@@ -396,19 +445,5 @@ class SearchConsoleService
         $normalizedHost = str_starts_with($host, 'www.') ? substr($host, 4) : $host;
 
         return $normalizedHost === $normalizedExpected;
-    }
-
-    /**
-     * Extract the path from a full URL, relative to the property's website.
-     */
-    private function extractPath(?string $fullUrl, ?string $baseUrl): ?string
-    {
-        if (! $fullUrl) {
-            return null;
-        }
-
-        $path = parse_url($fullUrl, PHP_URL_PATH);
-
-        return $path ?: '/';
     }
 }

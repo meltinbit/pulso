@@ -130,23 +130,24 @@ class GetPropertySummaryTool extends Tool
     }
 
     /**
-     * Get search queries from the most recent snapshot that has them.
-     * Search Console data has a 2-3 day delay, so the latest snapshot may not have queries yet.
+     * Get the search queries of the most recent day that has them.
+     * Search Console data has a 2-3 day delay, so the latest snapshot date may
+     * not have queries yet.
+     *
+     * @return array<string, mixed>
      */
     private function getLatestSearchQueries(GaProperty $property): array
     {
-        $snapshotWithQueries = $property->snapshots()
-            ->whereHas('searchQueries')
-            ->latest('snapshot_date')
-            ->first();
+        $latestDate = $property->searchQueries()->max('date');
 
-        if (! $snapshotWithQueries) {
+        if (! $latestDate) {
             return [];
         }
 
         return [
-            'date' => $snapshotWithQueries->snapshot_date->toDateString(),
-            'queries' => $snapshotWithQueries->searchQueries()
+            'date' => substr((string) $latestDate, 0, 10),
+            'queries' => $property->searchQueries()
+                ->where('date', $latestDate)
                 ->orderByDesc('clicks')
                 ->limit(10)
                 ->get()

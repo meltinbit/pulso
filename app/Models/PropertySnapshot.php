@@ -80,11 +80,6 @@ class PropertySnapshot extends Model
         return $this->hasMany(PropertySnapshotPage::class);
     }
 
-    public function searchQueries(): HasMany
-    {
-        return $this->hasMany(PropertySnapshotSearchQuery::class);
-    }
-
     public function events(): HasMany
     {
         return $this->hasMany(PropertySnapshotEvent::class);

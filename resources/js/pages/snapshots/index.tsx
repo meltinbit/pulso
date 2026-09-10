@@ -28,7 +28,6 @@ interface Snapshot {
     sessions_delta_wow: string | null;
     sources: { id: number; source: string; medium: string; sessions: number }[];
     pages: { id: number; page_path: string; pageviews: number }[];
-    search_queries: { id: number; query: string; clicks: number }[];
 }
 
 interface PaginatedSnapshots {
@@ -43,6 +42,7 @@ interface SnapshotsPageProps {
     hasProperty: boolean;
     property: { id: number; display_name: string; website_url: string | null } | null;
     snapshots: PaginatedSnapshots | null;
+    searchQueryCounts: Record<string, number>;
     flash?: { success?: string; error?: string };
     [key: string]: unknown;
 }
@@ -68,7 +68,7 @@ function deltaDisplay(value: string | null) {
 }
 
 export default function SnapshotsIndex() {
-    const { hasProperty, property, snapshots, flash } = usePage<SnapshotsPageProps>().props;
+    const { hasProperty, property, snapshots, searchQueryCounts, flash } = usePage<SnapshotsPageProps>().props;
     const [generating, setGenerating] = useState(false);
 
     function handleGenerate() {
@@ -161,7 +161,7 @@ export default function SnapshotsIndex() {
                                                     <TableCell className="text-right text-xs">{deltaDisplay(s.users_delta_wow)}</TableCell>
                                                     <TableCell className="text-muted-foreground text-right text-xs">{s.sources.length}</TableCell>
                                                     <TableCell className="text-muted-foreground text-right text-xs">{s.pages.length}</TableCell>
-                                                    <TableCell className="text-muted-foreground text-right text-xs">{s.search_queries.length}</TableCell>
+                                                    <TableCell className="text-muted-foreground text-right text-xs">{searchQueryCounts[s.snapshot_date.slice(0, 10)] ?? 0}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>

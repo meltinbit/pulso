@@ -10,10 +10,10 @@ use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
 use App\Mcp\Tools\ListPropertiesTool;
 use App\Models\GaProperty;
+use App\Models\PropertySearchQuery;
 use App\Models\PropertySnapshot;
 use App\Models\PropertySnapshotEvent;
 use App\Models\PropertySnapshotPage;
-use App\Models\PropertySnapshotSearchQuery;
 use App\Models\PropertySnapshotSource;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -305,13 +305,11 @@ it('returns search queries for the authenticated users property', function () {
     $this->actingAs($user);
 
     $property = GaProperty::factory()->for($user)->create(['display_name' => 'Queries Site']);
-    $snapshot = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
-        'snapshot_date' => now()->subDay(),
-    ]);
 
-    PropertySnapshotSearchQuery::factory()->for($snapshot, 'snapshot')->create([
+    PropertySearchQuery::factory()->for($property, 'gaProperty')->create([
+        'date' => now()->subDay()->toDateString(),
         'query' => 'pulso analytics',
-        'page' => '/analytics',
+        'page' => 'https://example.com/analytics',
         'clicks' => 42,
         'impressions' => 400,
     ]);
@@ -322,6 +320,44 @@ it('returns search queries for the authenticated users property', function () {
 
     $response->assertOk();
     $response->assertSee('pulso analytics');
+});
+
+it('sums search query metrics across every day in the range', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create();
+
+    PropertySearchQuery::factory()->for($property, 'gaProperty')->create([
+        'date' => '2026-05-16',
+        'query' => 'calcolatore imu',
+        'page' => 'https://example.com/imu',
+        'clicks' => 10,
+        'impressions' => 100,
+        'position' => 4.0,
+    ]);
+
+    PropertySearchQuery::factory()->for($property, 'gaProperty')->create([
+        'date' => '2026-05-17',
+        'query' => 'calcolatore imu',
+        'page' => 'https://example.com/imu',
+        'clicks' => 5,
+        'impressions' => 100,
+        'position' => 2.0,
+    ]);
+
+    $response = PulsoServer::tool(GetPropertySearchQueriesTool::class, [
+        'property_id' => $property->id,
+        'from' => '2026-05-16',
+        'to' => '2026-05-17',
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('"total_clicks": 15');
+    $response->assertSee('"total_impressions": 200');
+    // 15 clicks over 200 impressions, and a position weighted by impressions.
+    $response->assertSee('"avg_ctr": 7.5');
+    $response->assertSee('"avg_position": 3');
 });
 
 it('cannot access another users property through mcp tools', function () {

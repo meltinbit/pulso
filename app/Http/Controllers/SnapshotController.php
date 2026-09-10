@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveProperty;
+use App\Models\GaProperty;
+use App\Models\PropertySnapshot;
 use App\Services\SnapshotAnalyzerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +24,7 @@ class SnapshotController extends Controller
 
         $snapshots = $property
             ? $property->snapshots()
-                ->with('sources', 'pages', 'searchQueries')
+                ->with('sources', 'pages')
                 ->orderByDesc('snapshot_date')
                 ->paginate(30)
             : null;
@@ -30,7 +33,36 @@ class SnapshotController extends Controller
             'hasProperty' => $property !== null,
             'property' => $property?->only('id', 'display_name', 'website_url'),
             'snapshots' => $snapshots,
+            'searchQueryCounts' => $snapshots && $property
+                ? $this->searchQueryCounts($property, $snapshots->getCollection())
+                : [],
         ]);
+    }
+
+    /**
+     * Count the Search Console rows stored for each snapshot date on the page.
+     * They live on the property, not on the snapshot, because Search Console
+     * keeps consolidating a day well after its snapshot is generated.
+     *
+     * @param  Collection<int, PropertySnapshot>  $snapshots
+     * @return array<string, int>
+     */
+    private function searchQueryCounts(GaProperty $property, Collection $snapshots): array
+    {
+        $dates = $snapshots->map(fn (PropertySnapshot $snapshot) => $snapshot->snapshot_date->toDateString());
+
+        if ($dates->isEmpty()) {
+            return [];
+        }
+
+        return $property->searchQueries()
+            ->toBase()
+            ->whereIn('date', $dates)
+            ->selectRaw('date, COUNT(*) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date')
+            ->mapWithKeys(fn ($total, $date) => [substr((string) $date, 0, 10) => (int) $total])
+            ->all();
     }
 
     public function generate(Request $request, SnapshotAnalyzerService $analyzer): RedirectResponse
@@ -42,24 +74,24 @@ class SnapshotController extends Controller
         }
 
         $targetDate = Carbon::yesterday();
-        
+
         // Find the latest snapshot for this property
         $latestSnapshot = $property->snapshots()
             ->latest('snapshot_date')
             ->first();
-        
+
         $snapshotsGenerated = 0;
         $messages = [];
-        
+
         try {
             if ($latestSnapshot) {
                 $lastSnapshotDate = Carbon::parse($latestSnapshot->snapshot_date);
-                
+
                 // If there's a gap between the latest snapshot and yesterday
                 if ($lastSnapshotDate->lt($targetDate)) {
                     // Create snapshots for each missing day
                     $currentDate = $lastSnapshotDate->copy()->addDay();
-                    
+
                     while ($currentDate->lte($targetDate)) {
                         $snapshot = $analyzer->analyze($property, $currentDate);
                         $messages[] = "Snapshot generato per {$currentDate->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})";
@@ -68,7 +100,7 @@ class SnapshotController extends Controller
                     }
                 } else {
                     // If no gap, just create for yesterday if not already created
-                    if (!$lastSnapshotDate->isSameDay($targetDate)) {
+                    if (! $lastSnapshotDate->isSameDay($targetDate)) {
                         $snapshot = $analyzer->analyze($property, $targetDate);
                         $messages[] = "Snapshot generato per {$targetDate->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})";
                         $snapshotsGenerated++;
@@ -85,7 +117,7 @@ class SnapshotController extends Controller
                 $messages[] = "Snapshot generato per {$targetDate->toDateString()}: {$snapshot->trend} (score: {$snapshot->trend_score})";
                 $snapshotsGenerated++;
             }
-            
+
             if ($snapshotsGenerated > 1) {
                 return back()->with('success', "Generati $snapshotsGenerated snapshots per recuperare i dati mancanti.");
             } else {
@@ -93,6 +125,7 @@ class SnapshotController extends Controller
             }
         } catch (\Throwable $e) {
             Log::warning("Manual snapshot failed for {$property->display_name}: {$e->getMessage()}");
+
             return back()->with('error', "Errore: {$e->getMessage()}");
         }
     }

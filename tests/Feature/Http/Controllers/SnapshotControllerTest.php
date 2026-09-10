@@ -2,10 +2,12 @@
 
 use App\Models\GaConnection;
 use App\Models\GaProperty;
+use App\Models\PropertySearchQuery;
 use App\Models\PropertySnapshot;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     Http::preventStrayRequests();
@@ -16,7 +18,7 @@ test('generate creates a snapshot for yesterday when no previous snapshots exist
     $user = User::factory()->create();
     $connection = GaConnection::factory()->for($user)->create();
     $property = GaProperty::factory()->for($user)->for($connection, 'gaConnection')->create();
-    
+
     Http::fake([
         'analyticsdata.googleapis.com/*' => Http::sequence()
             ->push(['rows' => [['metricValues' => [['value' => '500'], ['value' => '700'], ['value' => '2000'], ['value' => '45.5'], ['value' => '120']]]]])
@@ -29,15 +31,15 @@ test('generate creates a snapshot for yesterday when no previous snapshots exist
             ->dontFailWhenEmpty(),
         'searchconsole.googleapis.com/*' => Http::response(['rows' => []]),
     ]);
-    
+
     $response = actingAs($user)->post(route('snapshots.generate'));
-    
+
     $response->assertRedirect();
     $response->assertSessionHas('success');
-    
+
     // We should now have 1 snapshot
     expect(PropertySnapshot::count())->toBe(1);
-    
+
     // Check that the snapshot is created for yesterday
     expect(PropertySnapshot::first()->snapshot_date->toDateString())->toBe('2026-04-23');
 });
@@ -46,7 +48,7 @@ test('generate fills missing snapshots between last snapshot and yesterday', fun
     $user = User::factory()->create();
     $connection = GaConnection::factory()->for($user)->create();
     $property = GaProperty::factory()->for($user)->for($connection, 'gaConnection')->create();
-    
+
     // Create a snapshot for 3 days ago (April 21st)
     $oldSnapshot = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => Carbon::parse('2026-04-21')->startOfDay(),
@@ -54,7 +56,7 @@ test('generate fills missing snapshots between last snapshot and yesterday', fun
         'sessions' => 200,
         'pageviews' => 500,
     ]);
-    
+
     // Setup HTTP fakes (will need 2 days of snapshots = 14 calls, 7 per day)
     Http::fake([
         'analyticsdata.googleapis.com/*' => Http::sequence()
@@ -77,15 +79,15 @@ test('generate fills missing snapshots between last snapshot and yesterday', fun
             ->dontFailWhenEmpty(),
         'searchconsole.googleapis.com/*' => Http::response(['rows' => []]),
     ]);
-    
+
     $response = actingAs($user)->post(route('snapshots.generate'));
-    
+
     $response->assertRedirect();
     $response->assertSessionHas('success', 'Generati 2 snapshots per recuperare i dati mancanti.');
-    
+
     // We should now have 3 snapshots total (the original + 2 filled in)
     expect(PropertySnapshot::count())->toBe(3);
-    
+
     // Verify we have snapshots for Apr 21, 22, and 23
     expect(PropertySnapshot::where('snapshot_date', Carbon::parse('2026-04-21')->startOfDay())->exists())->toBeTrue();
     expect(PropertySnapshot::where('snapshot_date', Carbon::parse('2026-04-22')->startOfDay())->exists())->toBeTrue();
@@ -96,7 +98,7 @@ test('generate updates existing snapshot if one already exists for yesterday', f
     $user = User::factory()->create();
     $connection = GaConnection::factory()->for($user)->create();
     $property = GaProperty::factory()->for($user)->for($connection, 'gaConnection')->create();
-    
+
     // Create a snapshot for yesterday
     $existingSnapshot = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => Carbon::yesterday()->startOfDay(),
@@ -104,7 +106,7 @@ test('generate updates existing snapshot if one already exists for yesterday', f
         'sessions' => 200,
         'pageviews' => 500,
     ]);
-    
+
     // Setup HTTP fakes
     Http::fake([
         'analyticsdata.googleapis.com/*' => Http::sequence()
@@ -118,15 +120,15 @@ test('generate updates existing snapshot if one already exists for yesterday', f
             ->dontFailWhenEmpty(),
         'searchconsole.googleapis.com/*' => Http::response(['rows' => []]),
     ]);
-    
+
     $response = actingAs($user)->post(route('snapshots.generate'));
-    
+
     $response->assertRedirect();
     $response->assertSessionHas('success');
-    
+
     // We should still have only 1 snapshot
     expect(PropertySnapshot::count())->toBe(1);
-    
+
     // Verify the snapshot has been updated with new data
     $updatedSnapshot = PropertySnapshot::first();
     expect($updatedSnapshot->id)->toBe($existingSnapshot->id);
@@ -138,15 +140,40 @@ test('generate handles API error gracefully', function () {
     $user = User::factory()->create();
     $connection = GaConnection::factory()->for($user)->create();
     $property = GaProperty::factory()->for($user)->for($connection, 'gaConnection')->create();
-    
+
     Http::fake([
         'analyticsdata.googleapis.com/*' => Http::response(['error' => ['message' => 'API quota exceeded']], 429),
     ]);
-    
+
     $response = actingAs($user)->post(route('snapshots.generate'));
-    
+
     $response->assertRedirect();
     $response->assertSessionHas('error');
-    
+
     expect(PropertySnapshot::count())->toBe(0);
+});
+test('index exposes the stored search query count for each snapshot date', function () {
+    $user = User::factory()->create();
+    $connection = GaConnection::factory()->for($user)->create();
+    $property = GaProperty::factory()->for($user)->for($connection, 'gaConnection')->create();
+
+    PropertySnapshot::factory()->for($property, 'gaProperty')->create([
+        'snapshot_date' => Carbon::parse('2026-04-23')->startOfDay(),
+    ]);
+
+    PropertySearchQuery::factory()->count(3)->for($property, 'gaProperty')->create([
+        'date' => '2026-04-23',
+    ]);
+
+    PropertySearchQuery::factory()->for($property, 'gaProperty')->create([
+        'date' => '2026-04-22',
+    ]);
+
+    $response = $this->actingAs($user)->get(route('snapshots.index'));
+
+    $response->assertSuccessful();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('snapshots/index')
+        ->where('searchQueryCounts', ['2026-04-23' => 3])
+    );
 });

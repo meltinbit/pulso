@@ -63,4 +63,9 @@ class GaProperty extends Model
     {
         return $this->hasMany(PropertySnapshot::class);
     }
+
+    public function searchQueries(): HasMany
+    {
+        return $this->hasMany(PropertySearchQuery::class);
+    }
 }

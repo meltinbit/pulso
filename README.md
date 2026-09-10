@@ -139,7 +139,8 @@ Pulso generates daily analytics snapshots for each monitored GA4 property. Snaps
 - **Trend analysis**: spike, improved, stall, declined, drop (with composite score)
 - **Traffic sources**: top 10 sources with sessions and users
 - **Top pages**: top 20 pages with per-page bounce rate and engagement
-- **Search queries**: top 20 Google Search Console queries with clicks, impressions, CTR, position
+
+Google Search Console rows are **not** part of a snapshot: they are stored per property and per day by a separate sync (see [Search Console sync](#search-console-sync)), because Google keeps consolidating a day for several days after it first appears.
 
 ### Configuration (Settings > Snapshots)
 
@@ -156,6 +157,7 @@ All snapshot settings are per-user and configurable from the UI:
 |-----|----------|---------|
 | `RefreshAnalyticsCache` | 02:00 UTC | Refreshes the GA4 analytics cache |
 | `GenerateDailySnapshots` | 09:00 UTC | Generates daily snapshots per user, sends Telegram if enabled |
+| `SyncSearchConsoleData` | 05:00 UTC | Re-downloads the last 4 days of Search Console rows for every active property |
 
 The snapshot job iterates over all users, checking each user's settings for enabled/disabled, active properties, and Telegram preferences.
 
@@ -181,7 +183,34 @@ php artisan snapshots:generate --from=2026-04-01 --to=2026-04-15 --property=3 --
 | `--property` | Generate only for a specific property ID |
 | `--no-telegram` | Skip Telegram digest |
 
-> **Note:** Google Search Console data has a 2-3 day delay. Snapshots for the most recent days won't include search query data.
+> **Note:** Google Search Console data has a 2-3 day delay, so the most recent days have no search query data yet. The Search Console sync re-downloads them until they settle.
+
+## Search Console Sync
+
+Search Console rows are fetched with `dimensions: ['date', 'query', 'page']` and `rowLimit: 25000`, paginating on `startRow` until Google stops returning full pages. Rows are stored per day on the property, so any date range sums correctly instead of double counting a single "top 20" list.
+
+Every run re-downloads the last 4 days and replaces those days wholesale, because Search Console keeps consolidating a day after publishing it. Re-running is idempotent.
+
+```bash
+# Last 4 days for every active property (what the scheduler runs)
+php artisan search-console:sync
+
+# Full backfill of the 16 months Google retains, one property
+php artisan search-console:sync --backfill --property=3
+
+# Explicit range
+php artisan search-console:sync --from=2026-01-01 --to=2026-03-31
+```
+
+| Option | Description |
+|--------|-------------|
+| `--property` | Sync only a specific property ID |
+| `--days` | Re-download the last N days (default: 4) |
+| `--from` | Start date, YYYY-MM-DD (overrides `--days`) |
+| `--to` | End date, YYYY-MM-DD (default: yesterday) |
+| `--backfill` | Download the full 16 months Google retains |
+
+> Run `php artisan search-console:sync --backfill` once after deploying, to populate the history Google still holds.
 
 ## Telegram Notifications
 

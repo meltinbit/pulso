@@ -3,7 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
-use App\Models\PropertySnapshotSearchQuery;
+use App\Models\PropertySearchQuery;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -18,6 +18,9 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 class GetPropertySearchQueriesTool extends Tool
 {
     use ResolvesMcpContext;
+
+    /** Queries returned per call. */
+    private const QUERY_LIMIT = 30;
 
     public function handle(Request $request): Response
     {
@@ -34,32 +37,26 @@ class GetPropertySearchQueriesTool extends Tool
 
         $property = $this->resolveAuthorizedProperty($validated['property_id']);
 
-        $snapshotIds = $property->snapshots()
-            ->whereBetween('snapshot_date', [$from, $to])
-            ->pluck('id');
-
-        $orderColumn = match ($sortBy) {
-            'ctr' => 'avg_ctr',
-            'position' => 'avg_position',
-            default => "total_{$sortBy}",
-        };
-
-        $orderDirection = $sortBy === 'position' ? 'asc' : 'desc';
-
-        $queries = PropertySnapshotSearchQuery::whereIn('property_snapshot_id', $snapshotIds)
-            ->selectRaw('query, MAX(page) as page, SUM(clicks) as total_clicks, SUM(impressions) as total_impressions, AVG(ctr) as avg_ctr, AVG(position) as avg_position')
+        $queries = PropertySearchQuery::where('ga_property_id', $property->id)
+            ->whereBetween('date', [$from, $to])
+            ->selectRaw('`query`, SUM(clicks) as total_clicks, SUM(impressions) as total_impressions')
+            ->selectRaw('SUM(clicks) * 100.0 / NULLIF(SUM(impressions), 0) as avg_ctr')
+            ->selectRaw('SUM(position * impressions) * 1.0 / NULLIF(SUM(impressions), 0) as avg_position')
             ->groupBy('query')
-            ->orderBy($orderColumn, $orderDirection)
-            ->limit(30)
-            ->get()
-            ->map(fn ($q) => [
-                'query' => $q->query,
-                'page' => $q->page,
-                'total_clicks' => (int) $q->total_clicks,
-                'total_impressions' => (int) $q->total_impressions,
-                'avg_ctr' => round((float) $q->avg_ctr, 2),
-                'avg_position' => round((float) $q->avg_position, 1),
-            ]);
+            ->orderBy($this->orderColumn($sortBy), $sortBy === 'position' ? 'asc' : 'desc')
+            ->limit(self::QUERY_LIMIT)
+            ->get();
+
+        $topPages = $this->topPagePerQuery($property->id, $from, $to, $queries->pluck('query')->all());
+
+        $queries = $queries->map(fn ($row) => [
+            'query' => $row->query,
+            'page' => $topPages[$row->query] ?? null,
+            'total_clicks' => (int) $row->total_clicks,
+            'total_impressions' => (int) $row->total_impressions,
+            'avg_ctr' => round((float) $row->avg_ctr, 2),
+            'avg_position' => round((float) $row->avg_position, 1),
+        ]);
 
         $result = [
             'property' => $property->display_name,
@@ -70,6 +67,40 @@ class GetPropertySearchQueriesTool extends Tool
         ];
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));
+    }
+
+    private function orderColumn(string $sortBy): string
+    {
+        return match ($sortBy) {
+            'ctr' => 'avg_ctr',
+            'position' => 'avg_position',
+            default => "total_{$sortBy}",
+        };
+    }
+
+    /**
+     * Resolve the best performing landing page for each of the given queries.
+     *
+     * @param  array<int, string>  $queries
+     * @return array<string, string|null>
+     */
+    private function topPagePerQuery(int $propertyId, string $from, string $to, array $queries): array
+    {
+        if ($queries === []) {
+            return [];
+        }
+
+        return PropertySearchQuery::where('ga_property_id', $propertyId)
+            ->whereBetween('date', [$from, $to])
+            ->whereIn('query', $queries)
+            ->selectRaw('`query`, page, SUM(clicks) as page_clicks, SUM(impressions) as page_impressions')
+            ->groupBy('query', 'page')
+            ->orderByDesc('page_clicks')
+            ->orderByDesc('page_impressions')
+            ->get()
+            ->groupBy('query')
+            ->map(fn ($rows) => $rows->first()->page)
+            ->all();
     }
 
     /**

@@ -1,13 +1,16 @@
 <?php
 
+use App\Exceptions\SearchConsoleApiException;
 use App\Models\GaConnection;
 use App\Models\GaProperty;
 use App\Services\SearchConsoleService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 
 beforeEach(function () {
     Cache::flush();
+    Sleep::fake();
     $connection = GaConnection::factory()->create([
         'access_token' => 'fake-token',
         'token_expires_at' => now()->addHour(),
@@ -27,17 +30,18 @@ test('uses sc-domain when matching Domain property exists', function () {
         ]),
         'searchconsole.googleapis.com/webmasters/v3/sites/*/searchAnalytics/query' => Http::response([
             'rows' => [[
-                'keys' => ['hello world', 'https://example.com/foo'],
+                'keys' => ['2026-04-21', 'hello world', 'https://example.com/foo'],
                 'clicks' => 5, 'impressions' => 100, 'ctr' => 0.05, 'position' => 4.2,
             ]],
         ]),
     ]);
 
-    $rows = app(SearchConsoleService::class)->fetchSearchQueries($this->property, '2026-04-21');
+    $rows = app(SearchConsoleService::class)->fetchDailyRows($this->property, '2026-04-21', '2026-04-21');
 
     expect($rows)->toHaveCount(1);
+    expect($rows[0]['date'])->toBe('2026-04-21');
     expect($rows[0]['query'])->toBe('hello world');
-    expect($rows[0]['page'])->toBe('/foo');
+    expect($rows[0]['page'])->toBe('https://example.com/foo');
     expect($rows[0]['ctr'])->toBe(5.0);
 
     Http::assertSent(fn ($request) => str_contains($request->url(), urlencode('sc-domain:example.com')));
@@ -56,22 +60,22 @@ test('falls back to URL-prefix site when no Domain property exists', function ()
         ]),
     ]);
 
-    app(SearchConsoleService::class)->fetchSearchQueries($this->property, '2026-04-21');
+    app(SearchConsoleService::class)->fetchDailyRows($this->property, '2026-04-21', '2026-04-21');
 
     Http::assertSent(fn ($request) => str_contains($request->url(), urlencode('https://www.example.com/'))
         && ! str_contains($request->url(), 'sc-domain'));
 });
 
-test('returns empty array and skips API call when no site matches the host', function () {
+test('throws instead of reporting an empty day when no site matches the host', function () {
     Http::fake([
         'searchconsole.googleapis.com/webmasters/v3/sites' => Http::response([
             'siteEntry' => [['siteUrl' => 'sc-domain:other.test']],
         ]),
     ]);
 
-    $rows = app(SearchConsoleService::class)->fetchSearchQueries($this->property, '2026-04-21');
+    expect(fn () => app(SearchConsoleService::class)->fetchDailyRows($this->property, '2026-04-21', '2026-04-21'))
+        ->toThrow(SearchConsoleApiException::class);
 
-    expect($rows)->toBe([]);
     Http::assertNotSent(fn ($request) => str_contains($request->url(), 'searchAnalytics/query'));
 });
 
@@ -84,8 +88,8 @@ test('caches the resolved site so listSites is not called twice', function () {
     ]);
 
     $service = app(SearchConsoleService::class);
-    $service->fetchSearchQueries($this->property, '2026-04-21');
-    $service->fetchSearchQueries($this->property, '2026-04-22');
+    $service->fetchDailyRows($this->property, '2026-04-21', '2026-04-21');
+    $service->fetchDailyRows($this->property, '2026-04-22', '2026-04-22');
 
     Http::assertSentCount(3); // 1 listSites + 2 query
 });
@@ -104,10 +108,63 @@ test('forgets cached site on API failure so next call re-resolves', function () 
     ]);
 
     $service = app(SearchConsoleService::class);
-    $service->fetchSearchQueries($this->property, '2026-04-21');
-    $service->fetchSearchQueries($this->property, '2026-04-22');
+
+    expect(fn () => $service->fetchDailyRows($this->property, '2026-04-21', '2026-04-21'))
+        ->toThrow(SearchConsoleApiException::class);
+
+    $service->fetchDailyRows($this->property, '2026-04-22', '2026-04-22');
 
     Http::assertSent(fn ($request) => str_contains($request->url(), urlencode('https://example.com/')));
+});
+
+test('requests date, query and page dimensions with the maximum row limit', function () {
+    Http::fake([
+        'searchconsole.googleapis.com/webmasters/v3/sites' => Http::response([
+            'siteEntry' => [['siteUrl' => 'sc-domain:example.com']],
+        ]),
+        'searchconsole.googleapis.com/webmasters/v3/sites/*/searchAnalytics/query' => Http::response(['rows' => []]),
+    ]);
+
+    app(SearchConsoleService::class)->fetchDailyRows($this->property, '2026-04-21', '2026-04-27');
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), 'searchAnalytics/query')) {
+            return false;
+        }
+
+        return $request['dimensions'] === ['date', 'query', 'page']
+            && $request['rowLimit'] === SearchConsoleService::ROW_LIMIT
+            && $request['startRow'] === 0
+            && $request['startDate'] === '2026-04-21'
+            && $request['endDate'] === '2026-04-27';
+    });
+});
+
+test('paginates on startRow until a partial page comes back', function () {
+    $fullPage = array_map(fn (int $i) => [
+        'keys' => ['2026-04-21', "query {$i}", 'https://example.com/'.$i],
+        'clicks' => 1, 'impressions' => 10, 'ctr' => 0.1, 'position' => 2.0,
+    ], range(1, SearchConsoleService::ROW_LIMIT));
+
+    Http::fake([
+        'searchconsole.googleapis.com/webmasters/v3/sites' => Http::response([
+            'siteEntry' => [['siteUrl' => 'sc-domain:example.com']],
+        ]),
+        'searchconsole.googleapis.com/webmasters/v3/sites/*/searchAnalytics/query' => Http::sequence()
+            ->push(['rows' => $fullPage])
+            ->push(['rows' => [[
+                'keys' => ['2026-04-21', 'last one', 'https://example.com/last'],
+                'clicks' => 3, 'impressions' => 30, 'ctr' => 0.1, 'position' => 5.0,
+            ]]]),
+    ]);
+
+    $rows = app(SearchConsoleService::class)->fetchDailyRows($this->property, '2026-04-21', '2026-04-21');
+
+    expect($rows)->toHaveCount(SearchConsoleService::ROW_LIMIT + 1);
+    expect(end($rows)['query'])->toBe('last one');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'searchAnalytics/query')
+        && $request['startRow'] === SearchConsoleService::ROW_LIMIT);
 });
 
 test('inspects urls and returns index status details', function () {

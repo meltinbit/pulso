@@ -2,21 +2,22 @@
 
 namespace Database\Factories;
 
-use App\Models\PropertySnapshot;
-use App\Models\PropertySnapshotSearchQuery;
+use App\Models\GaProperty;
+use App\Models\PropertySearchQuery;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<PropertySnapshotSearchQuery>
+ * @extends Factory<PropertySearchQuery>
  */
-class PropertySnapshotSearchQueryFactory extends Factory
+class PropertySearchQueryFactory extends Factory
 {
     public function definition(): array
     {
         return [
-            'property_snapshot_id' => PropertySnapshot::factory(),
+            'ga_property_id' => GaProperty::factory(),
+            'date' => $this->faker->dateTimeBetween('-30 days', '-1 day')->format('Y-m-d'),
             'query' => $this->faker->words(3, true),
-            'page' => '/'.$this->faker->slug(2),
+            'page' => 'https://example.com/'.$this->faker->slug(2),
             'clicks' => $this->faker->numberBetween(1, 500),
             'impressions' => $this->faker->numberBetween(50, 10000),
             'ctr' => $this->faker->randomFloat(2, 0.5, 15),
