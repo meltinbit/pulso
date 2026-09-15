@@ -27,7 +27,8 @@ class GoogleSettingsController extends Controller
             ],
             'connections' => $request->user()
                 ->gaConnections()
-                ->select('id', 'google_email', 'google_name', 'is_active', 'created_at')
+                ->select('id', 'google_email', 'google_name', 'is_active', 'authorized_at', 'created_at')
+                ->withCount('properties')
                 ->orderByDesc('id')
                 ->get(),
             'hasCredentials' => ! empty($googleSettings['google_client_id']) && ! empty($googleSettings['google_client_secret']),

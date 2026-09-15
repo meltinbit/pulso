@@ -18,7 +18,13 @@ interface GaConnection {
     google_email: string;
     google_name: string | null;
     is_active: boolean;
+    authorized_at: string | null;
     created_at: string;
+    properties_count: number;
+}
+
+function formatDate(value: string): string {
+    return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 interface GoogleSettingsProps {
@@ -108,32 +114,35 @@ export default function GoogleSettings({ settings, connections, hasCredentials }
                 <div className="space-y-6">
                     <HeadingSmall
                         title="Google Accounts"
-                        description="Manage connected Google accounts for Analytics data"
+                        description="Each GA4 property uses the account it was added with. Add another account only if some sites are on a different Google login."
                     />
 
                     {hasCredentials ? (
                         <div className="space-y-4">
-                            <Button asChild variant="outline" size="sm">
-                                <a href={route('google.redirect')}>Connect Google Account</a>
-                            </Button>
-
                             {connections.length > 0 ? (
                                 <div className="space-y-3">
                                     {connections.map((connection) => (
                                         <div
                                             key={connection.id}
-                                            className="flex items-center justify-between rounded-lg border p-4"
+                                            className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
                                         >
-                                            <div>
-                                                <p className="font-medium">{connection.google_email}</p>
-                                                {connection.google_name && (
-                                                    <p className="text-muted-foreground text-sm">{connection.google_name}</p>
-                                                )}
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <p className="truncate font-medium">{connection.google_email}</p>
+                                                    <Badge variant={connection.is_active ? 'default' : 'destructive'}>
+                                                        {connection.is_active ? 'Connected' : 'Needs reconnection'}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-muted-foreground mt-1 text-sm">
+                                                    {connection.properties_count}{' '}
+                                                    {connection.properties_count === 1 ? 'property' : 'properties'} &middot; Last authorized{' '}
+                                                    {formatDate(connection.authorized_at ?? connection.created_at)}
+                                                </p>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <Badge variant={connection.is_active ? 'default' : 'secondary'}>
-                                                    {connection.is_active ? 'Active' : 'Inactive'}
-                                                </Badge>
+                                            <div className="flex shrink-0 items-center gap-3">
+                                                <Button asChild variant={connection.is_active ? 'outline' : 'default'} size="sm">
+                                                    <a href={route('google.redirect', { login_hint: connection.google_email })}>Reconnect</a>
+                                                </Button>
                                                 {connection.is_active && (
                                                     <Link
                                                         href={route('google.disconnect', connection.id)}
@@ -151,6 +160,12 @@ export default function GoogleSettings({ settings, connections, hasCredentials }
                             ) : (
                                 <p className="text-muted-foreground text-sm">No Google accounts connected yet.</p>
                             )}
+
+                            <Button asChild variant={connections.length > 0 ? 'ghost' : 'default'} size="sm">
+                                <a href={route('google.redirect')}>
+                                    {connections.length > 0 ? '+ Add another Google account' : 'Connect Google Account'}
+                                </a>
+                            </Button>
                         </div>
                     ) : (
                         <p className="text-muted-foreground text-sm">

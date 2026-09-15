@@ -29,6 +29,14 @@ test('google redirect sends user to google', function () {
     $response->assertRedirect();
 });
 
+test('google redirect preselects the account to reconnect', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get('/auth/google?login_hint=test@gmail.com');
+
+    expect($response->headers->get('Location'))->toContain('login_hint=test%40gmail.com');
+});
+
 test('google callback creates a new connection', function () {
     Socialite::fake('google', (new SocialiteUser)->map([
         'id' => 'google-123',
@@ -77,6 +85,7 @@ test('google callback updates existing connection', function () {
 
     $connection->refresh();
     expect($connection->google_email)->toBe('new@gmail.com');
+    expect($connection->authorized_at->isToday())->toBeTrue();
     expect(GaConnection::where('user_id', $this->user->id)->count())->toBe(1);
 });
 

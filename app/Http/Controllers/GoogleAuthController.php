@@ -24,7 +24,11 @@ class GoogleAuthController extends Controller
                 'https://www.googleapis.com/auth/analytics.edit',
                 'https://www.googleapis.com/auth/webmasters.readonly',
             ])
-            ->with(['access_type' => 'offline', 'prompt' => 'consent'])
+            ->with(array_filter([
+                'access_type' => 'offline',
+                'prompt' => 'consent',
+                'login_hint' => $request->string('login_hint')->toString(),
+            ]))
             ->redirect();
     }
 
@@ -49,6 +53,7 @@ class GoogleAuthController extends Controller
                 'token_expires_at' => now()->addSeconds($googleUser->expiresIn),
                 'scopes' => $this->normalizeScopes($googleUser->approvedScopes ?? []),
                 'is_active' => true,
+                'authorized_at' => now(),
             ]
         );
 

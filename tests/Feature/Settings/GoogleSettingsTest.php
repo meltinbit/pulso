@@ -2,6 +2,7 @@
 
 use App\Models\AppSetting;
 use App\Models\GaConnection;
+use App\Models\GaProperty;
 use App\Models\User;
 use App\Services\SettingService;
 
@@ -51,15 +52,23 @@ test('google credentials are stored encrypted', function () {
 
 test('google settings page shows connections', function () {
     $user = User::factory()->create();
-    GaConnection::factory()->for($user)->create([
+    $connection = GaConnection::factory()->for($user)->create([
         'google_email' => 'test@gmail.com',
     ]);
+    GaProperty::factory()->count(2)->for($user)->create(['ga_connection_id' => $connection->id]);
 
     $response = $this
         ->actingAs($user)
         ->get('/settings/google');
 
-    $response->assertOk();
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('settings/google')
+            ->has('connections', 1)
+            ->where('connections.0.google_email', 'test@gmail.com')
+            ->where('connections.0.properties_count', 2)
+            ->whereNot('connections.0.authorized_at', null)
+        );
 });
 
 test('google credentials validation requires both fields', function () {

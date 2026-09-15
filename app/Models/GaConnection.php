@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\GaConnectionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Crypt;
 
 class GaConnection extends Model
 {
-    /** @use HasFactory<\Database\Factories\GaConnectionFactory> */
+    /** @use HasFactory<GaConnectionFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -23,6 +24,7 @@ class GaConnection extends Model
         'token_expires_at',
         'scopes',
         'is_active',
+        'authorized_at',
     ];
 
     protected $hidden = [
@@ -35,6 +37,7 @@ class GaConnection extends Model
         return [
             'token_expires_at' => 'datetime',
             'is_active' => 'boolean',
+            'authorized_at' => 'datetime',
         ];
     }
 

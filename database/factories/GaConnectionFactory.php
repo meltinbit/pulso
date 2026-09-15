@@ -28,6 +28,7 @@ class GaConnectionFactory extends Factory
             'token_expires_at' => now()->addHour(),
             'scopes' => 'analytics.readonly',
             'is_active' => true,
+            'authorized_at' => now(),
         ];
     }
 
