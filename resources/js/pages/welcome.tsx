@@ -181,6 +181,10 @@ export default function Welcome() {
                     >
                         AGPL-3.0
                     </a>
+                    {' '}&middot;{' '}
+                    <Link href={route('privacy')} className="text-white/40 transition hover:text-white/60">
+                        Privacy
+                    </Link>
                 </footer>
             </div>
 

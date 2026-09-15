@@ -15,6 +15,10 @@ Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
+Route::get('privacy', function () {
+    return Inertia::render('privacy');
+})->name('privacy');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('api/realtime/{property}', [DashboardController::class, 'realtime'])->name('api.realtime');
