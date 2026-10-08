@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdSenseController;
 use App\Http\Controllers\AudienceReportController;
 use App\Http\Controllers\ContentReportController;
 use App\Http\Controllers\DashboardController;
@@ -39,6 +40,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('snapshots', [SnapshotController::class, 'index'])->name('snapshots.index');
     Route::post('snapshots/generate', [SnapshotController::class, 'generate'])->name('snapshots.generate');
+
+    Route::get('adsense', [AdSenseController::class, 'index'])->name('adsense.index');
+    Route::post('adsense/sync', [AdSenseController::class, 'sync'])->name('adsense.sync');
 
     Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
     Route::post('properties', [PropertyController::class, 'store'])->name('properties.store');

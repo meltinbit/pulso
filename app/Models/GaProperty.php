@@ -68,4 +68,9 @@ class GaProperty extends Model
     {
         return $this->hasMany(PropertySearchQuery::class);
     }
+
+    public function adsenseMetrics(): HasMany
+    {
+        return $this->hasMany(PropertyAdsenseMetric::class);
+    }
 }

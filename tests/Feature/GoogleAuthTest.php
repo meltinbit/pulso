@@ -37,6 +37,14 @@ test('google redirect preselects the account to reconnect', function () {
     expect($response->headers->get('Location'))->toContain('login_hint=test%40gmail.com');
 });
 
+test('google redirect requests read access to adsense', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get('/auth/google');
+
+    expect(urldecode($response->headers->get('Location')))->toContain('https://www.googleapis.com/auth/adsense.readonly');
+});
+
 test('google callback creates a new connection', function () {
     Socialite::fake('google', (new SocialiteUser)->map([
         'id' => 'google-123',

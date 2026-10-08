@@ -3,6 +3,7 @@
 use App\Jobs\CheckGoogleConnections;
 use App\Jobs\GenerateDailySnapshots;
 use App\Jobs\RefreshAnalyticsCache;
+use App\Jobs\SyncAdSenseData;
 use App\Jobs\SyncSearchConsoleData;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -16,3 +17,4 @@ Schedule::job(new RefreshAnalyticsCache)->dailyAt('02:00')->withoutOverlapping()
 Schedule::job(new CheckGoogleConnections)->hourly()->withoutOverlapping();
 Schedule::job(new GenerateDailySnapshots)->hourlyAt(0)->withoutOverlapping();
 Schedule::job(new SyncSearchConsoleData)->dailyAt('05:00')->withoutOverlapping();
+Schedule::job(new SyncAdSenseData)->everyThreeHours()->withoutOverlapping();

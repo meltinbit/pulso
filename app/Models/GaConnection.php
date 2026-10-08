@@ -66,6 +66,15 @@ class GaConnection extends Model
         return $this->token_expires_at->isPast();
     }
 
+    /**
+     * Whether the user granted read access to AdSense when authorizing. Older
+     * connections were authorized before the scope was requested.
+     */
+    public function hasAdSenseScope(): bool
+    {
+        return str_contains((string) $this->scopes, 'adsense');
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

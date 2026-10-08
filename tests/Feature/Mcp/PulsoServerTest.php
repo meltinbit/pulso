@@ -1,6 +1,7 @@
 <?php
 
 use App\Mcp\Servers\PulsoServer;
+use App\Mcp\Tools\GetPropertyAdSenseTool;
 use App\Mcp\Tools\GetPropertyEventsTool;
 use App\Mcp\Tools\GetPropertyIndexStatusTool;
 use App\Mcp\Tools\GetPropertyPagesTool;
@@ -10,6 +11,7 @@ use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
 use App\Mcp\Tools\ListPropertiesTool;
 use App\Models\GaProperty;
+use App\Models\PropertyAdsenseMetric;
 use App\Models\PropertySearchQuery;
 use App\Models\PropertySnapshot;
 use App\Models\PropertySnapshotEvent;
@@ -370,4 +372,53 @@ it('cannot access another users property through mcp tools', function () {
     expect(fn () => PulsoServer::tool(GetPropertySummaryTool::class, [
         'property_id' => $property->id,
     ]))->toThrow(ModelNotFoundException::class);
+});
+
+it('returns adsense totals and breakdowns for the authenticated users property', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create(['display_name' => 'Ads Site', 'timezone' => 'UTC']);
+
+    PropertyAdsenseMetric::factory()->for($property, 'gaProperty')->create([
+        'date' => now()->subDays(2)->toDateString(), 'earnings' => 3, 'page_views' => 1000,
+    ]);
+    PropertyAdsenseMetric::factory()->for($property, 'gaProperty')->create([
+        'date' => now()->subDay()->toDateString(), 'earnings' => 1.5, 'page_views' => 500,
+    ]);
+    PropertyAdsenseMetric::factory()->for($property, 'gaProperty')->breakdown('platform', 'High-end mobile devices')->create([
+        'date' => now()->subDay()->toDateString(),
+    ]);
+
+    $response = PulsoServer::tool(GetPropertyAdSenseTool::class, [
+        'property_id' => $property->id,
+        'include_daily' => false,
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('"earnings": 4.5');
+    $response->assertSee('"page_rpm": 3');
+    $response->assertSee('High-end mobile devices');
+    $response->assertDontSee('"daily"');
+});
+
+it('explains how to enable adsense when no data is stored', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create();
+
+    PulsoServer::tool(GetPropertyAdSenseTool::class, ['property_id' => $property->id])
+        ->assertOk()
+        ->assertSee('No AdSense data stored');
+});
+
+it('cannot read adsense data of another users property', function () {
+    $this->actingAs(User::factory()->create());
+
+    $property = GaProperty::factory()->create();
+    PropertyAdsenseMetric::factory()->for($property, 'gaProperty')->create();
+
+    expect(fn () => PulsoServer::tool(GetPropertyAdSenseTool::class, ['property_id' => $property->id]))
+        ->toThrow(ModelNotFoundException::class);
 });
