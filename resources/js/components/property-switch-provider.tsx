@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 interface PropertySwitchContextValue {
     activePropertyId: string | null;
@@ -35,25 +35,37 @@ export function PropertySwitchProvider({ children }: { children: React.ReactNode
         setPendingPropertyId(null);
     }, []);
 
+    // Once the server has stored the new property, any later page visit renders
+    // it. A visit that cancels the reload below (e.g. a click in the sidebar)
+    // must not revert the selector, so pending state is only dropped after the
+    // next navigation, not on cancel.
+    const switchConfirmedRef = useRef(false);
+
+    useEffect(() => {
+        return router.on('navigate', () => {
+            if (switchConfirmedRef.current) {
+                switchConfirmedRef.current = false;
+                setPendingPropertyId(null);
+            }
+        });
+    }, []);
+
     const finishSwitch = useCallback(() => {
+        switchConfirmedRef.current = true;
+
+        // Prefetched pages were rendered for the previous property.
+        router.flushAll();
+
         const pendingHref = pendingNavigationRef.current;
         pendingNavigationRef.current = null;
 
         if (pendingHref) {
-            router.visit(pendingHref, {
-                preserveScroll: true,
-                onCancel: clearPendingState,
-                onError: () => clearPendingState(),
-            });
+            router.visit(pendingHref, { preserveScroll: true });
             return;
         }
 
-        router.reload({
-            preserveScroll: true,
-            onCancel: clearPendingState,
-            onError: () => clearPendingState(),
-        });
-    }, [clearPendingState]);
+        router.reload();
+    }, []);
 
     const switchProperty = useCallback(async (propertyId: string) => {
         if (propertyId === activePropertyId || propertyId === pendingPropertyId) {
@@ -86,6 +98,7 @@ export function PropertySwitchProvider({ children }: { children: React.ReactNode
                 finishSwitch();
             })
             .catch((error) => {
+                switchConfirmedRef.current = false;
                 clearPendingState();
                 console.error(error);
             })
@@ -96,7 +109,7 @@ export function PropertySwitchProvider({ children }: { children: React.ReactNode
         switchingPromiseRef.current = request;
 
         return request;
-    }, [activePropertyId, finishSwitch, pendingPropertyId]);
+    }, [activePropertyId, clearPendingState, finishSwitch, pendingPropertyId]);
 
     const visitWhenReady = useCallback((href: string) => {
         if (!switchingPromiseRef.current) {

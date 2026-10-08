@@ -64,15 +64,6 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        $activeId = session('active_property_id');
-
-        if ($activeId) {
-            $property = $request->user()->gaProperties()->find($activeId);
-            if ($property) {
-                return $property;
-            }
-        }
-
-        return $request->user()->gaProperties()->where('is_active', true)->first();
+        return $request->user()->activeProperty();
     }
 }

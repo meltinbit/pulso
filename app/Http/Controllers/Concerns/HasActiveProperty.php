@@ -16,17 +16,7 @@ trait HasActiveProperty
 
     protected function getActiveProperty(Request $request): ?GaProperty
     {
-        $user = $request->user();
-        $activeId = session('active_property_id');
-
-        if ($activeId) {
-            $property = $user->gaProperties()->with('gaConnection')->find($activeId);
-            if ($property) {
-                return $property;
-            }
-        }
-
-        return $user->gaProperties()->with('gaConnection')->where('is_active', true)->first();
+        return $request->user()->activeProperty()?->load('gaConnection');
     }
 
     protected function getDateRange(Request $request): array

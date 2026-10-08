@@ -7,10 +7,10 @@ use App\Models\GaProperty;
 use App\Services\GaPropertyDiscoveryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class PropertyController extends Controller
 {
@@ -81,7 +81,7 @@ class PropertyController extends Controller
             ],
         ]);
 
-        session(['active_property_id' => $request->property_id]);
+        $request->user()->forceFill(['active_property_id' => $request->integer('property_id')])->save();
 
         if ($request->expectsJson()) {
             return response()->noContent();

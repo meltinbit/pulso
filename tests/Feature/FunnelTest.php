@@ -22,7 +22,7 @@ test('funnels index shows list', function () {
     $connection = GaConnection::factory()->for($user)->create();
     $property = GaProperty::factory()->for($user)->create(['ga_connection_id' => $connection->id]);
 
-    session(['active_property_id' => $property->id]);
+    $user->update(['active_property_id' => $property->id]);
 
     $funnel = Funnel::factory()->create([
         'user_id' => $user->id,
@@ -45,7 +45,7 @@ test('funnel can be created with steps', function () {
     $connection = GaConnection::factory()->for($user)->create();
     $property = GaProperty::factory()->for($user)->create(['ga_connection_id' => $connection->id]);
 
-    session(['active_property_id' => $property->id]);
+    $user->update(['active_property_id' => $property->id]);
 
     $response = $this->actingAs($user)->post('/funnels', [
         'name' => 'Onboarding',
@@ -72,7 +72,7 @@ test('funnel requires at least 2 steps', function () {
     $connection = GaConnection::factory()->for($user)->create();
     $property = GaProperty::factory()->for($user)->create(['ga_connection_id' => $connection->id]);
 
-    session(['active_property_id' => $property->id]);
+    $user->update(['active_property_id' => $property->id]);
 
     $response = $this->actingAs($user)->post('/funnels', [
         'name' => 'Bad funnel',
