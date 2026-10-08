@@ -1,5 +1,5 @@
-import { Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Link, router, usePage, usePoll } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { KpiCard } from '@/components/kpi-card';
@@ -44,6 +44,13 @@ interface Report {
 
 type Status = 'missing_scope' | 'missing_website' | 'no_data' | 'ready';
 
+interface Backfill {
+    state: 'queued' | 'running' | 'done' | 'failed';
+    updated_at: string;
+    days?: number;
+    error?: string;
+}
+
 interface AdSenseProps {
     hasProperty: boolean;
     property: { id: number; display_name: string; website_url: string | null } | null;
@@ -51,6 +58,7 @@ interface AdSenseProps {
     period: string;
     periods: Record<string, string>;
     report: Report | null;
+    backfill: Backfill | null;
     flash?: { success?: string; error?: string };
     [key: string]: unknown;
 }
@@ -72,7 +80,18 @@ function comparisonOf(change: number | null | undefined) {
 }
 
 export default function AdSenseIndex() {
-    const { hasProperty, status, period, periods, report, flash } = usePage<AdSenseProps>().props;
+    const { hasProperty, status, period, periods, report, backfill, flash } = usePage<AdSenseProps>().props;
+    const backfillInProgress = backfill?.state === 'queued' || backfill?.state === 'running';
+
+    const { start: startPolling, stop: stopPolling } = usePoll(5000, { only: ['status', 'report', 'backfill'] }, { autoStart: false });
+
+    useEffect(() => {
+        if (backfillInProgress) {
+            startPolling();
+        } else {
+            stopPolling();
+        }
+    }, [backfillInProgress, startPolling, stopPolling]);
     const [syncing, setSyncing] = useState(false);
 
     function handleSync() {
@@ -89,6 +108,8 @@ export default function AdSenseIndex() {
                 <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-500">{flash.success}</div>
             )}
             {flash?.error && <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-500">{flash.error}</div>}
+
+            {backfill && <BackfillNotice backfill={backfill} />}
 
             {status !== 'ready' && <StatusNotice status={status} syncing={syncing} onSync={handleSync} />}
 
@@ -181,6 +202,30 @@ export default function AdSenseIndex() {
                 </div>
             )}
         </ReportLayout>
+    );
+}
+
+function BackfillNotice({ backfill }: { backfill: Backfill }) {
+    const updatedAt = new Date(backfill.updated_at).toLocaleString('it-IT');
+    const messages: Record<Backfill['state'], string> = {
+        queued: `History download queued (${updatedAt}). It starts as soon as the queue worker picks it up.`,
+        running: `Downloading the AdSense history (started ${updatedAt})… this page refreshes by itself.`,
+        done: `History download completed ${updatedAt}: ${backfill.days ?? 0} days with data.`,
+        failed: `History download failed ${updatedAt}: ${backfill.error ?? 'unknown error'}`,
+    };
+    const styles: Record<Backfill['state'], string> = {
+        queued: 'border-border bg-muted/40 text-muted-foreground',
+        running: 'border-primary/20 bg-primary/5 text-primary',
+        done: 'border-border bg-muted/40 text-muted-foreground',
+        failed: 'border-red-500/20 bg-red-500/10 text-red-500',
+    };
+    const inProgress = backfill.state === 'queued' || backfill.state === 'running';
+
+    return (
+        <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 text-sm ${styles[backfill.state]}`}>
+            {inProgress && <Loader2 className="h-4 w-4 shrink-0 animate-spin" />}
+            {messages[backfill.state]}
+        </div>
     );
 }
 

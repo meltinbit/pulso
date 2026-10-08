@@ -146,22 +146,46 @@ class AdSenseService
     }
 
     /**
-     * Build the query string by hand: Google expects repeated keys
-     * (`metrics=A&metrics=B`), not PHP style `metrics[0]=A`.
+     * Domains (without "www.") that earned or showed ads in the account over
+     * the range, so the user can tell which website URL AdSense expects.
+     *
+     * @return array<int, string>
+     *
+     * @throws AdSenseApiException
      */
+    public function listReportedDomains(GaProperty $property, string $startDate, string $endDate): array
+    {
+        $account = $this->resolveAccount($property);
+
+        if (! $account) {
+            return [];
+        }
+
+        $token = $this->tokenService->getFreshToken($property->gaConnection);
+        $params = [...$this->dateParams($startDate, $endDate), ['dimensions', 'DOMAIN_NAME'], ['metrics', 'PAGE_VIEWS']];
+
+        $response = Http::withToken($token)
+            ->timeout(30)
+            ->connectTimeout(5)
+            ->get(self::BASE_URL."/{$account}/reports:generate?".$this->buildQuery($params));
+
+        if ($response->failed()) {
+            throw new AdSenseApiException("AdSense API error for {$property->display_name}: HTTP {$response->status()}");
+        }
+
+        return collect($response->json('rows', []))
+            ->map(fn (array $row): string => (string) ($row['cells'][0]['value'] ?? ''))
+            ->map(fn (string $domain): string => str_starts_with($domain, 'www.') ? substr($domain, 4) : $domain)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     private function reportQuery(GaProperty $property, string $host, string $startDate, string $endDate, ?string $dimension): string
     {
-        [$startYear, $startMonth, $startDay] = array_map('intval', explode('-', $startDate));
-        [$endYear, $endMonth, $endDay] = array_map('intval', explode('-', $endDate));
-
         $params = [
-            ['dateRange', 'CUSTOM'],
-            ['startDate.year', $startYear],
-            ['startDate.month', $startMonth],
-            ['startDate.day', $startDay],
-            ['endDate.year', $endYear],
-            ['endDate.month', $endMonth],
-            ['endDate.day', $endDay],
+            ...$this->dateParams($startDate, $endDate),
             ['dimensions', 'DATE'],
             ['filters', 'DOMAIN_NAME=='.$this->escapeFilter($host).',DOMAIN_NAME==www.'.$this->escapeFilter($host)],
             ['currencyCode', $property->currency ?: 'EUR'],
@@ -175,6 +199,36 @@ class AdSenseService
             $params[] = ['metrics', $metric];
         }
 
+        return $this->buildQuery($params);
+    }
+
+    /**
+     * @return array<int, array{0: string, 1: string|int}>
+     */
+    private function dateParams(string $startDate, string $endDate): array
+    {
+        [$startYear, $startMonth, $startDay] = array_map('intval', explode('-', $startDate));
+        [$endYear, $endMonth, $endDay] = array_map('intval', explode('-', $endDate));
+
+        return [
+            ['dateRange', 'CUSTOM'],
+            ['startDate.year', $startYear],
+            ['startDate.month', $startMonth],
+            ['startDate.day', $startDay],
+            ['endDate.year', $endYear],
+            ['endDate.month', $endMonth],
+            ['endDate.day', $endDay],
+        ];
+    }
+
+    /**
+     * Build the query string by hand: Google expects repeated keys
+     * (`metrics=A&metrics=B`), not PHP style `metrics[0]=A`.
+     *
+     * @param  array<int, array{0: string, 1: string|int}>  $params
+     */
+    private function buildQuery(array $params): string
+    {
         return collect($params)
             ->map(fn (array $param): string => rawurlencode($param[0]).'='.rawurlencode((string) $param[1]))
             ->implode('&');

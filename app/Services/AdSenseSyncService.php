@@ -7,6 +7,7 @@ use App\Models\GaProperty;
 use App\Models\PropertyAdsenseMetric;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -27,6 +28,9 @@ class AdSenseSyncService
 
     /** Days requested per API call. */
     public const CHUNK_DAYS = 31;
+
+    /** How long a backfill status stays visible on the AdSense page. */
+    private const BACKFILL_STATUS_TTL_DAYS = 2;
 
     /** Rows written per INSERT statement. */
     private const INSERT_CHUNK = 500;
@@ -138,6 +142,34 @@ class AdSenseSyncService
         }
 
         return $stored;
+    }
+
+    /**
+     * The latest backfill status of the property, shown on the AdSense page.
+     *
+     * @return array{state: 'queued'|'running'|'done'|'failed', updated_at: string, days?: int, error?: string}|null
+     */
+    public function backfillStatus(GaProperty $property): ?array
+    {
+        return Cache::get($this->backfillStatusKey($property));
+    }
+
+    /**
+     * @param  'queued'|'running'|'done'|'failed'  $state
+     * @param  array{days?: int, error?: string}  $details
+     */
+    public function markBackfill(GaProperty $property, string $state, array $details = []): void
+    {
+        Cache::put(
+            $this->backfillStatusKey($property),
+            ['state' => $state, 'updated_at' => now()->toIso8601String(), ...$details],
+            now()->addDays(self::BACKFILL_STATUS_TTL_DAYS),
+        );
+    }
+
+    private function backfillStatusKey(GaProperty $property): string
+    {
+        return "adsense:backfill:{$property->id}";
     }
 
     /**

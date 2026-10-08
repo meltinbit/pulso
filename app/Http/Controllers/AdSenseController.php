@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HasActiveProperty;
 use App\Jobs\BackfillAdSenseData;
 use App\Models\GaProperty;
 use App\Services\AdSenseReportService;
+use App\Services\AdSenseService;
 use App\Services\AdSenseSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ class AdSenseController extends Controller
         private AdSenseReportService $reports,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request, AdSenseSyncService $sync): Response
     {
         $property = $this->getActiveProperty($request);
         ['period' => $period] = $this->getDateRange($request);
@@ -38,10 +39,11 @@ class AdSenseController extends Controller
             'period' => $period,
             'periods' => $this->periodLabels(),
             'report' => $status === 'ready' ? $this->reports->summarize($property, $from, $to) : null,
+            'backfill' => $property ? $sync->backfillStatus($property) : null,
         ]);
     }
 
-    public function sync(Request $request, AdSenseSyncService $sync): RedirectResponse
+    public function sync(Request $request, AdSenseSyncService $sync, AdSenseService $adSense): RedirectResponse
     {
         $property = $this->getActiveProperty($request);
 
@@ -54,9 +56,18 @@ class AdSenseController extends Controller
         }
 
         $isFirstSync = ! $this->reports->hasData($property);
+        $recentDays = AdSenseSyncService::RECENT_DAYS;
 
         try {
             $stored = $sync->syncRecent($property);
+
+            if ($isFirstSync && $stored === 0) {
+                $domainError = $this->missingDomainError($property, $adSense);
+
+                if ($domainError) {
+                    return back()->with('error', $domainError);
+                }
+            }
         } catch (\Throwable $e) {
             Log::warning("Manual AdSense sync failed for {$property->display_name}: {$e->getMessage()}");
 
@@ -64,12 +75,36 @@ class AdSenseController extends Controller
         }
 
         if ($isFirstSync) {
+            $sync->markBackfill($property, 'queued');
             BackfillAdSenseData::dispatch($property);
 
-            return back()->with('success', "Sincronizzati gli ultimi {$stored} giorni. Lo storico di ".AdSenseSyncService::BACKFILL_MONTHS.' mesi è in download in background.');
+            return back()->with('success', "Ultimi {$recentDays} giorni sincronizzati ({$stored} con dati). Lo storico di ".AdSenseSyncService::BACKFILL_MONTHS.' mesi è in coda per il download in background.');
         }
 
-        return back()->with('success', "Dati AdSense aggiornati ({$stored} giorni).");
+        return back()->with('success', "Dati AdSense aggiornati: ultimi {$recentDays} giorni ({$stored} con dati).");
+    }
+
+    /**
+     * When the property's domain never shows up in the AdSense account, explain
+     * which domains do, instead of queueing a backfill that will find nothing.
+     */
+    private function missingDomainError(GaProperty $property, AdSenseService $adSense): ?string
+    {
+        $host = $adSense->propertyHost($property);
+        $to = Carbon::today($property->timezone ?: 'UTC');
+        $from = $to->copy()->subMonthsNoOverflow(AdSenseSyncService::BACKFILL_MONTHS);
+
+        $domains = $adSense->listReportedDomains($property, $from->toDateString(), $to->toDateString());
+
+        if (in_array($host, $domains, true)) {
+            return null;
+        }
+
+        $months = AdSenseSyncService::BACKFILL_MONTHS;
+
+        return $domains === []
+            ? "L'account AdSense non ha dati negli ultimi {$months} mesi."
+            : "AdSense non ha dati per {$host} negli ultimi {$months} mesi. Domini con dati nell'account: ".implode(', ', $domains).'. Seleziona la proprietà corrispondente o correggi il suo URL del sito.';
     }
 
     /**

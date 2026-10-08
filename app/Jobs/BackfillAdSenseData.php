@@ -27,13 +27,19 @@ class BackfillAdSenseData implements ShouldQueue
 
     public function handle(AdSenseSyncService $sync): void
     {
+        $sync->markBackfill($this->property, 'running');
+
         $stored = $sync->backfill($this->property, $this->months);
+
+        $sync->markBackfill($this->property, 'done', ['days' => $stored]);
 
         Log::info("AdSense backfill for {$this->property->display_name}: {$stored} days over {$this->months} months");
     }
 
     public function failed(\Throwable $exception): void
     {
+        app(AdSenseSyncService::class)->markBackfill($this->property, 'failed', ['error' => $exception->getMessage()]);
+
         Log::error("BackfillAdSenseData failed for {$this->property->display_name}: {$exception->getMessage()}");
     }
 }
