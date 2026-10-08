@@ -126,3 +126,26 @@ test('throws when the report api fails', function () {
 
     app(AdSenseSyncService::class)->syncRecent($this->property);
 })->throws(AdSenseApiException::class);
+
+test('an account granted after a failed lookup is found on the next sync', function () {
+    Http::fake([
+        'adsense.googleapis.com/v2/accounts' => Http::sequence()
+            ->push(['accounts' => []])
+            ->push(['accounts' => [['name' => 'accounts/pub-123', 'state' => 'READY']]]),
+        'adsense.googleapis.com/v2/accounts/pub-123/reports:generate*' => Http::response(['headers' => [], 'rows' => []]),
+    ]);
+
+    $sync = app(AdSenseSyncService::class);
+
+    expect(fn () => $sync->syncRecent($this->property))->toThrow(AdSenseApiException::class, 'Nessun account AdSense');
+
+    $sync->syncRecent($this->property);
+
+    Http::assertSent(fn (Request $request) => str_contains($request->url(), 'pub-123/reports:generate'));
+});
+
+test('reports the http status when listing accounts fails', function () {
+    Http::fake(['adsense.googleapis.com/v2/accounts' => Http::response(['error' => 'API not enabled'], 403)]);
+
+    app(AdSenseSyncService::class)->syncRecent($this->property);
+})->throws(AdSenseApiException::class, 'HTTP 403');

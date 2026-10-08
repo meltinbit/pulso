@@ -74,6 +74,8 @@ class AdSenseService
      * List the AdSense accounts visible to the property's Google connection.
      *
      * @return array<int, array{name: string, display_name: string|null, state: string|null}>
+     *
+     * @throws AdSenseApiException when the API call fails
      */
     public function listAccounts(GaProperty $property): array
     {
@@ -87,7 +89,7 @@ class AdSenseService
         if ($response->failed()) {
             Log::warning("AdSense accounts API error for {$property->display_name}: HTTP {$response->status()} {$response->body()}");
 
-            return [];
+            throw new AdSenseApiException("AdSense accounts API error for {$property->gaConnection->google_email}: HTTP {$response->status()}");
         }
 
         return collect($response->json('accounts', []))
@@ -103,14 +105,18 @@ class AdSenseService
 
     /**
      * Resolve the AdSense account ("accounts/pub-…") for the property's
-     * connection, skipping closed accounts. Cached because it rarely changes.
+     * connection, skipping closed accounts. Only a found account is cached:
+     * a missing one is asked again, so access granted later (e.g. accepting
+     * an AdSense user invite) is picked up on the next sync.
+     *
+     * @throws AdSenseApiException when the API call fails
      */
     public function resolveAccount(GaProperty $property): ?string
     {
         $cached = Cache::get($this->cacheKey($property));
 
-        if ($cached !== null) {
-            return $cached === '' ? null : $cached;
+        if (filled($cached)) {
+            return $cached;
         }
 
         $account = collect($this->listAccounts($property))
@@ -118,7 +124,9 @@ class AdSenseService
 
         $resolved = $account['name'] ?? null;
 
-        Cache::put($this->cacheKey($property), $resolved ?? '', now()->addDay());
+        if ($resolved) {
+            Cache::put($this->cacheKey($property), $resolved, now()->addDay());
+        }
 
         return $resolved;
     }
