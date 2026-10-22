@@ -1,0 +1,66 @@
+# Production image for Coolify (replaces Nixpacks, which ships PHP 8.2.27).
+# serversideup/php runs nginx + php-fpm under s6-overlay as www-data,
+# serves /var/www/html/public on port 8080 and exposes /healthcheck.
+
+FROM serversideup/php:8.2-fpm-nginx AS base
+
+USER root
+# Extensions Nixpacks had and Laravel or its libraries may use without declaring them.
+RUN install-php-extensions bcmath intl gd exif
+USER www-data
+
+
+# Build stage: Composer deps + Vite assets. The Wayfinder Vite plugin runs
+# `php artisan wayfinder:generate`, so Node must live next to PHP here.
+FROM base AS build
+
+USER root
+COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:22-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+USER www-data
+
+COPY --chown=www-data:www-data composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
+
+COPY --chown=www-data:www-data package.json package-lock.json ./
+RUN npm ci --include=dev
+
+COPY --chown=www-data:www-data . .
+RUN composer dump-autoload --optimize --no-dev \
+    && npm run build \
+    && rm -rf node_modules
+
+
+FROM base
+
+# Same behaviour as the old start.sh: migrate, storage:link and optimize at boot.
+ENV AUTORUN_ENABLED=true \
+    PHP_OPCACHE_ENABLE=1 \
+    PHP_UPLOAD_MAX_FILE_SIZE=30M \
+    PHP_POST_MAX_SIZE=35M \
+    NGINX_CLIENT_MAX_BODY_SIZE=35M \
+    PHP_FPM_PM_MAX_CHILDREN=15
+
+# 3 queue workers and the scheduler, as in the old supervisor config.
+USER root
+COPY docker/s6/queue-worker-run docker/s6/scheduler-run /tmp/
+RUN for i in $(seq 1 3); do \
+        d=/etc/s6-overlay/s6-rc.d/queue-worker-$i; \
+        mkdir -p $d/dependencies.d; \
+        echo longrun > $d/type; \
+        touch $d/dependencies.d/php-fpm; \
+        cp /tmp/queue-worker-run $d/run && chmod +x $d/run; \
+        touch /etc/s6-overlay/user-bundles.d/user/contents.d/queue-worker-$i; \
+    done \
+    && d=/etc/s6-overlay/s6-rc.d/scheduler \
+    && mkdir -p $d/dependencies.d \
+    && echo longrun > $d/type \
+    && touch $d/dependencies.d/php-fpm \
+    && cp /tmp/scheduler-run $d/run && chmod +x $d/run \
+    && touch /etc/s6-overlay/user-bundles.d/user/contents.d/scheduler \
+    && rm /tmp/queue-worker-run /tmp/scheduler-run
+USER www-data
+
+COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html

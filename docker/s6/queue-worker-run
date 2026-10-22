@@ -1,0 +1,4 @@
+#!/command/with-contenv bash
+# s6 restarts the worker when --max-time ends it.
+cd /var/www/html
+exec php artisan queue:work --sleep=3 --tries=3 --max-time=3600
