@@ -20,9 +20,9 @@ export default function Privacy() {
                         <section>
                             <h2 className="mb-3 text-lg font-semibold text-white">Overview</h2>
                             <p>
-                                Pulso is a self-hosted analytics dashboard operated by MeltinBit for internal use. It connects to Google Analytics 4
-                                and Google Search Console to display reports about websites the account owner manages. This policy explains what data
-                                Pulso accesses and how it is handled.
+                                Pulso is a self-hosted analytics dashboard operated by MeltinBit for internal use. It connects to Google Analytics 4,
+                                Google Search Console, Google AdSense and the Google Ads API to display reports and keyword research about websites
+                                the account owner manages. This policy explains what data Pulso accesses and how it is handled.
                             </p>
                         </section>
 
@@ -33,8 +33,16 @@ export default function Privacy() {
                                 <li>Your basic Google profile (name and email address), to identify the connection.</li>
                                 <li>Google Analytics properties and reports (users, sessions, pages, traffic sources, events).</li>
                                 <li>Google Search Console data (search queries, clicks, impressions, sitemaps, URL inspection).</li>
+                                <li>Google AdSense reports (earnings, page views, impressions, clicks) for the account owner's websites.</li>
+                                <li>
+                                    Google Ads Keyword Planner data (keyword ideas, search volumes, competition, top of page bid estimates and geo
+                                    targets) for the account owner's own Google Ads account.
+                                </li>
                             </ul>
-                            <p className="mt-3">Pulso only reads this data. It does not modify your Analytics or Search Console configuration.</p>
+                            <p className="mt-3">
+                                Pulso only reads this data. It does not modify your Analytics, Search Console, AdSense or Google Ads configuration and
+                                does not create or change campaigns.
+                            </p>
                         </section>
 
                         <section>
@@ -42,7 +50,8 @@ export default function Privacy() {
                             <ul className="list-disc space-y-2 pl-6">
                                 <li>Data is used solely to generate the dashboards, reports and alerts shown inside Pulso.</li>
                                 <li>Reports are stored as daily snapshots in Pulso's own database, hosted on a private server.</li>
-                                <li>OAuth access and refresh tokens are stored encrypted.</li>
+                                <li>OAuth access and refresh tokens are stored encrypted or as server-side environment secrets.</li>
+                                <li>Keyword research results are cached for up to 30 days to limit API usage.</li>
                                 <li>Data is not sold, shared with third parties, or used for advertising.</li>
                             </ul>
                         </section>

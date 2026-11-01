@@ -41,6 +41,28 @@ return [
         'redirect' => '',
     ],
 
+    'google_ads' => [
+        'developer_token' => env('GOOGLE_ADS_DEVELOPER_TOKEN'),
+        'login_customer_id' => env('GOOGLE_ADS_LOGIN_CUSTOMER_ID'),
+        'customer_id' => env('GOOGLE_ADS_CUSTOMER_ID'),
+        'client_id' => env('GOOGLE_ADS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_ADS_CLIENT_SECRET'),
+        'refresh_token' => env('GOOGLE_ADS_REFRESH_TOKEN'),
+        'api_version' => env('GOOGLE_ADS_API_VERSION', 'v26'),
+        'daily_operations_limit' => (int) env('GOOGLE_ADS_DAILY_OPERATIONS_LIMIT', 1000),
+        'cache_days' => (int) env('GOOGLE_ADS_CACHE_DAYS', 30),
+        // languageConstants/1004 = Italian, geoTargetConstants/2380 = Italy.
+        'default_language' => env('GOOGLE_ADS_DEFAULT_LANGUAGE', '1004'),
+        'default_geo' => env('GOOGLE_ADS_DEFAULT_GEO', '2380'),
+        'languages' => [
+            'it' => '1004',
+            'en' => '1000',
+            'de' => '1001',
+            'fr' => '1002',
+            'es' => '1003',
+        ],
+    ],
+
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'chat_id' => env('TELEGRAM_CHAT_ID'),

@@ -6,6 +6,7 @@ use App\Http\Controllers\ContentReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FunnelController;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\SnapshotController;
 use App\Http\Controllers\TrafficReportController;
@@ -31,6 +32,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('reports/traffic', [TrafficReportController::class, 'index'])->name('reports.traffic');
     Route::get('reports/content', [ContentReportController::class, 'index'])->name('reports.content');
     Route::get('reports/audience', [AudienceReportController::class, 'index'])->name('reports.audience');
+
+    Route::get('keywords', [KeywordController::class, 'index'])->name('keywords.index');
+    Route::get('keywords/geo-targets', [KeywordController::class, 'geoTargets'])->name('keywords.geo-targets');
 
     Route::get('funnels', [FunnelController::class, 'index'])->name('funnels.index');
     Route::get('funnels/create', [FunnelController::class, 'create'])->name('funnels.create');

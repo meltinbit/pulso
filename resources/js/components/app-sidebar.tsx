@@ -3,7 +3,7 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { ArrowRightLeft, Camera, Coins, FileText, Filter, Globe, LayoutGrid, Settings, Users } from 'lucide-react';
+import { ArrowRightLeft, Camera, Coins, FileText, Filter, Globe, KeyRound, LayoutGrid, Settings, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 import { PropertyAwareLink } from './property-aware-link';
 import { PropertySwitcher } from './property-switcher';
@@ -33,6 +33,11 @@ const mainNavItems: NavItem[] = [
         title: 'AdSense',
         url: '/adsense',
         icon: Coins,
+    },
+    {
+        title: 'Keywords',
+        url: '/keywords',
+        icon: KeyRound,
     },
     {
         title: 'Funnels',

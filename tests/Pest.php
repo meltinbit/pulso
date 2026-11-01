@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -11,8 +14,8 @@
 |
 */
 
-pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -44,4 +47,43 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Configure a full set of Google Ads credentials for the test.
+ */
+function configureGoogleAds(array $overrides = []): void
+{
+    config(['services.google_ads' => array_merge(config('services.google_ads'), [
+        'developer_token' => 'dev-token',
+        'login_customer_id' => '111-222-3333',
+        'customer_id' => '444-555-6666',
+        'client_id' => 'client-id',
+        'client_secret' => 'client-secret',
+        'refresh_token' => 'refresh-token',
+        'daily_operations_limit' => 100,
+    ], $overrides)]);
+}
+
+/**
+ * A Google Ads keyword result in the REST shape (int64 values as strings).
+ *
+ * @return array<string, mixed>
+ */
+function googleAdsKeywordMetrics(int $volume = 1300, string $competition = 'HIGH'): array
+{
+    $months = ['NOVEMBER', 'DECEMBER', 'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER'];
+
+    return [
+        'competition' => $competition,
+        'avgMonthlySearches' => (string) $volume,
+        'competitionIndex' => '73',
+        'lowTopOfPageBidMicros' => '120000',
+        'highTopOfPageBidMicros' => '1456789',
+        'monthlySearchVolumes' => array_map(fn (string $month, int $i): array => [
+            'month' => $month,
+            'year' => $i < 2 ? '2025' : '2026',
+            'monthlySearches' => (string) ($i < 3 ? 1000 : ($i >= 9 ? 1500 : 1300)),
+        ], $months, array_keys($months)),
+    ];
 }
