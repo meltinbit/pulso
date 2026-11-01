@@ -23,6 +23,9 @@ class GoogleAdsKeywordService
     /** Upper bound for keywords per historical metrics request. */
     public const MAX_METRIC_KEYWORDS = 1000;
 
+    /** Monthly volumes kept per keyword: twelve months plus the same month a year earlier. */
+    public const MONTHS_KEPT = 13;
+
     /** Google caps geo targets at 10 per request. */
     public const MAX_GEO_TARGETS = 10;
 
@@ -59,12 +62,14 @@ class GoogleAdsKeywordService
             'geo' => $this->geoTargetIds($geoTargetIds),
             'language' => $this->languageId($language),
             'limit' => max(1, min($limit, self::MAX_IDEAS)),
+            'months' => $this->monthRangeKey(),
         ];
 
         $payload = $this->remember('ideas', $params, function () use ($params): array {
             $body = $this->targetingBody($params['geo'], $params['language']) + [
                 'includeAdultKeywords' => false,
                 'pageSize' => $params['limit'],
+                'historicalMetricsOptions' => $this->historicalMetricsOptions(),
             ];
 
             $body += match (true) {
@@ -106,12 +111,14 @@ class GoogleAdsKeywordService
             'keywords' => $keywords,
             'geo' => $this->geoTargetIds($geoTargetIds),
             'language' => $this->languageId($language),
+            'months' => $this->monthRangeKey(),
         ];
 
         return $this->remember('metrics', $params, function () use ($params): array {
             $body = $this->targetingBody($params['geo'], $params['language']) + [
                 'keywords' => $params['keywords'],
                 'includeAdultKeywords' => false,
+                'historicalMetricsOptions' => $this->historicalMetricsOptions(),
             ];
 
             $response = $this->client->post("customers/{$this->client->customerId()}:generateKeywordHistoricalMetrics", $body);
@@ -286,6 +293,8 @@ class GoogleAdsKeywordService
             ])
             ->sortBy('month')
             ->values()
+            ->slice(-self::MONTHS_KEPT)
+            ->values()
             ->all();
 
         $competition = $metrics['competition'] ?? null;
@@ -303,24 +312,53 @@ class GoogleAdsKeywordService
     }
 
     /**
-     * Percent change of the last three months against the first three of the series.
+     * Percent change of the latest month against the same month one year earlier.
+     * Comparing like for like months keeps seasonal keywords (tax deadlines,
+     * holidays) from looking like they are collapsing or exploding.
      *
      * @param  array<int, array{month: string, searches: int}>  $monthly
      */
     private function trend(array $monthly): ?float
     {
-        if (count($monthly) < 6) {
+        $byMonth = array_column($monthly, 'searches', 'month');
+        $latest = array_key_last($byMonth);
+
+        if ($latest === null) {
             return null;
         }
 
-        $first = array_sum(array_column(array_slice($monthly, 0, 3), 'searches'));
-        $last = array_sum(array_column(array_slice($monthly, -3), 'searches'));
+        $yearAgo = sprintf('%04d-%s', (int) substr($latest, 0, 4) - 1, substr($latest, 5, 2));
 
-        if ($first === 0) {
+        if (! isset($byMonth[$yearAgo]) || $byMonth[$yearAgo] === 0) {
             return null;
         }
 
-        return round(($last - $first) * 100 / $first, 1);
+        return round(($byMonth[$latest] - $byMonth[$yearAgo]) * 100 / $byMonth[$yearAgo], 1);
+    }
+
+    /**
+     * Ask Google for a two year window ending this month: it returns every
+     * month it has data for (the latest one usually lags by a month or two),
+     * and we keep the last {@see MONTHS_KEPT} so the latest month can be
+     * compared with the same month of the previous year.
+     *
+     * @return array{yearMonthRange: array{start: array{year: int, month: string}, end: array{year: int, month: string}}}
+     */
+    private function historicalMetricsOptions(): array
+    {
+        $end = now()->startOfMonth();
+        $start = $end->copy()->subMonths(24);
+        $names = array_flip(self::MONTHS);
+
+        return ['yearMonthRange' => [
+            'start' => ['year' => $start->year, 'month' => $names[$start->month]],
+            'end' => ['year' => $end->year, 'month' => $names[$end->month]],
+        ]];
+    }
+
+    private function monthRangeKey(): string
+    {
+        return now()->format('Y-m');
     }
 
     private function fromMicros(mixed $micros): ?float

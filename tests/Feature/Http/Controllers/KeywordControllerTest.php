@@ -100,3 +100,17 @@ test('returns geo target suggestions as JSON', function () {
 test('requires authentication', function () {
     $this->get(route('keywords.index'))->assertRedirect(route('login'));
 });
+
+test('uses the property chosen with the switcher', function () {
+    $other = GaProperty::factory()->for($this->user)->create(['display_name' => 'Altro Sito']);
+
+    $this->actingAs($this->user)
+        ->postJson(route('properties.switch'), ['property_id' => $other->id])
+        ->assertNoContent();
+
+    $this->actingAs($this->user->fresh())
+        ->get(route('keywords.index', ['seeds' => 'imu']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('property.id', $other->id)
+            ->where('activeProperty.id', $other->id));
+});

@@ -57,14 +57,27 @@ trait FormatsKeywordResearch
     }
 
     /**
-     * Search Console columns appended to a keyword row: [gsc_pos, gsc_impr, gsc_clicks].
+     * Search Console columns appended to a keyword row: [gsc_pos, gsc_impr, gsc_clicks, variant_of].
      *
-     * @param  array{position: float, impressions: int, clicks: int}|null  $gsc
-     * @return array<int, float|int|null>
+     * @param  array{gsc: array{position: float, impressions: int, clicks: int}|null, variant_of?: string|null}  $row
+     * @return array<int, float|int|string|null>
      */
-    protected function gscCells(?array $gsc): array
+    protected function gscCells(array $row): array
     {
-        return [$gsc['position'] ?? null, $gsc['impressions'] ?? null, $gsc['clicks'] ?? null];
+        return [$row['gsc']['position'] ?? null, $row['gsc']['impressions'] ?? null, $row['gsc']['clicks'] ?? null, $row['variant_of'] ?? null];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function gscColumns(): array
+    {
+        return ['gsc_pos', 'gsc_impr', 'gsc_clicks', 'variant_of'];
+    }
+
+    protected function gscLegend(): string
+    {
+        return '; gsc_*=Search Console last 90 days (null = site not present for this exact query); variant_of=Google reports identical metrics for this keyword and that one, where the site is present, so it is not a real gap';
     }
 
     /**
@@ -77,6 +90,6 @@ trait FormatsKeywordResearch
 
     protected function legend(): string
     {
-        return 'vol=avg monthly searches (approx, last 12 months); trend%=last 3 months vs first 3; comp=L/M/H; comp_idx=0-100; cpc_lo/cpc_hi=top of page bid range in account currency';
+        return 'vol=avg monthly searches (approx, last 12 months); trend%=latest month vs same month a year earlier; comp=L/M/H; comp_idx=0-100; cpc_lo/cpc_hi=top of page bid range in account currency';
     }
 }

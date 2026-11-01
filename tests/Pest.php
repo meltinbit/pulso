@@ -72,7 +72,7 @@ function configureGoogleAds(array $overrides = []): void
  */
 function googleAdsKeywordMetrics(int $volume = 1300, string $competition = 'HIGH'): array
 {
-    $months = ['NOVEMBER', 'DECEMBER', 'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER'];
+    $months = ['OCTOBER', 'NOVEMBER', 'DECEMBER', 'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER'];
 
     return [
         'competition' => $competition,
@@ -82,8 +82,8 @@ function googleAdsKeywordMetrics(int $volume = 1300, string $competition = 'HIGH
         'highTopOfPageBidMicros' => '1456789',
         'monthlySearchVolumes' => array_map(fn (string $month, int $i): array => [
             'month' => $month,
-            'year' => $i < 2 ? '2025' : '2026',
-            'monthlySearches' => (string) ($i < 3 ? 1000 : ($i >= 9 ? 1500 : 1300)),
+            'year' => $i < 3 ? '2025' : '2026',
+            'monthlySearches' => (string) ($i < 3 ? 1000 : ($i >= 10 ? 1500 : 1300)),
         ], $months, array_keys($months)),
     ];
 }

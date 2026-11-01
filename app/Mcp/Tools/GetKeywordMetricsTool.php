@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Get Google Ads historical metrics for specific keywords: average monthly searches, the last 12 monthly volumes, competition and top of page CPC range. Google merges close variants (e.g. singular/plural) into one row. Defaults: Italian language, Italy. Results are cached for 30 days.')]
+#[Description('Get Google Ads historical metrics for specific keywords: average monthly searches, the latest 13 monthly volumes (latest month plus the same month a year earlier), competition and top of page CPC range. Google merges close variants (e.g. singular/plural) into one row. Defaults: Italian language, Italy. Results are cached for 30 days.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetKeywordMetricsTool extends Tool

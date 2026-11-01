@@ -26,6 +26,7 @@ interface KeywordRow {
     cpc_low: number | null;
     cpc_high: number | null;
     gsc?: { position: number; impressions: number; clicks: number } | null;
+    variant_of?: string | null;
 }
 
 interface KeywordsProps {
@@ -35,7 +36,7 @@ interface KeywordsProps {
     filters: { seeds: string; url: string; location: GeoLocation[]; language: string; limit: number };
     languages: string[];
     results: KeywordRow[] | null;
-    summary: { total: number; present: number; missing: number; missing_volume: number } | null;
+    summary: { total: number; present: number; variants: number; missing: number; missing_volume: number } | null;
     gapDays: number;
     error: string | null;
     [key: string]: unknown;
@@ -58,7 +59,7 @@ function sortValue(row: KeywordRow, key: SortKey): number | string | null {
 
 function exportCsv(rows: KeywordRow[], withGsc: boolean) {
     const header = ['keyword', 'volume', 'trend_pct', 'competition', 'competition_index', 'cpc_low', 'cpc_high'];
-    if (withGsc) header.push('gsc_position', 'gsc_impressions', 'gsc_clicks');
+    if (withGsc) header.push('gsc_position', 'gsc_impressions', 'gsc_clicks', 'variant_of');
     const months = rows[0]?.monthly.map((m) => m.month) ?? [];
     header.push(...months);
 
@@ -69,7 +70,7 @@ function exportCsv(rows: KeywordRow[], withGsc: boolean) {
 
     const lines = rows.map((row) => {
         const cells: unknown[] = [row.keyword, row.volume, row.trend, row.competition, row.competition_index, row.cpc_low, row.cpc_high];
-        if (withGsc) cells.push(row.gsc?.position, row.gsc?.impressions, row.gsc?.clicks);
+        if (withGsc) cells.push(row.gsc?.position, row.gsc?.impressions, row.gsc?.clicks, row.variant_of);
         cells.push(...months.map((month) => row.monthly.find((m) => m.month === month)?.searches));
         return cells.map(escape).join(',');
     });
@@ -99,7 +100,7 @@ export default function KeywordsIndex() {
         value === null ? '–' : value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const rows = useMemo(() => {
-        const filtered = (results ?? []).filter((row) => !onlyGap || !row.gsc);
+        const filtered = (results ?? []).filter((row) => !onlyGap || (!row.gsc && !row.variant_of));
         return [...filtered].sort((a, b) => {
             const av = sortValue(a, sort.key);
             const bv = sortValue(b, sort.key);
@@ -226,9 +227,17 @@ export default function KeywordsIndex() {
                 {summary && (
                     <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         <Stat label="Ideas" value={summary.total.toLocaleString()} />
-                        <Stat label="Site present" value={summary.present.toLocaleString()} />
+                        <Stat
+                            label="Site present"
+                            value={summary.present.toLocaleString()}
+                            hint={summary.variants > 0 ? `incl. ${summary.variants} variants` : undefined}
+                        />
                         <Stat label="Gap (not present)" value={summary.missing.toLocaleString()} />
-                        <Stat label="Missed monthly searches" value={`≈ ${summary.missing_volume.toLocaleString()}`} />
+                        <Stat
+                            label="Missed monthly searches"
+                            value={`≈ ${summary.missing_volume.toLocaleString()}`}
+                            hint="variant groups counted once"
+                        />
                     </div>
                 )}
 
@@ -281,6 +290,7 @@ export default function KeywordsIndex() {
                                                     <Sparkline points={row.monthly} />
                                                     {row.trend !== null && (
                                                         <span
+                                                            title="Latest month vs same month a year earlier"
                                                             className={cn(
                                                                 'text-xs tabular-nums',
                                                                 row.trend > 0
@@ -325,6 +335,14 @@ export default function KeywordsIndex() {
                                                                 {row.gsc.impressions.toLocaleString()} impr.
                                                             </span>
                                                         </span>
+                                                    ) : row.variant_of ? (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-muted-foreground"
+                                                            title={`Google reports the same metrics as "${row.variant_of}", where the site is present`}
+                                                        >
+                                                            variant of “{row.variant_of}”
+                                                        </Badge>
                                                     ) : (
                                                         <Badge variant="outline" className="text-muted-foreground">
                                                             not present
@@ -344,11 +362,12 @@ export default function KeywordsIndex() {
     );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
     return (
         <div className="rounded-lg border p-3">
             <div className="text-muted-foreground text-xs">{label}</div>
             <div className="mt-1 text-lg font-semibold tabular-nums">{value}</div>
+            {hint && <div className="text-muted-foreground mt-0.5 text-xs">{hint}</div>}
         </div>
     );
 }

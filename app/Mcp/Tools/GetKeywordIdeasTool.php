@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Generate keyword ideas with Google Ads Keyword Planner (Google Search network) from seed keywords and/or a URL. Returns average monthly search volume, 12-month trend, competition and top of page CPC range, sorted by volume. Pass property_id to also get the Search Console position and impressions of that property for each idea (last 90 days). Defaults: Italian language, Italy. Results are cached for 30 days.')]
+#[Description('Generate keyword ideas with Google Ads Keyword Planner (Google Search network) from seed keywords and/or a URL. Returns average monthly search volume, year over year trend of the latest month, competition and top of page CPC range, sorted by volume. Pass property_id to also get the Search Console position and impressions of that property for each idea (last 90 days). Defaults: Italian language, Italy. Results are cached for 30 days.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetKeywordIdeasTool extends Tool
@@ -69,16 +69,16 @@ class GetKeywordIdeasTool extends Tool
 
         if ($property) {
             $ideas = $this->gap->annotate($property, $ideas);
-            $columns = [...$columns, 'gsc_pos', 'gsc_impr', 'gsc_clicks'];
+            $columns = [...$columns, ...$this->gscColumns()];
         }
 
         return $this->compactResponse(array_filter([
             'property' => $property?->display_name,
             'geo' => $geo,
-            'legend' => $this->legend().($property ? '; gsc_*=Search Console last 90 days, null = site not present' : ''),
+            'legend' => $this->legend().($property ? $this->gscLegend() : ''),
             'cols' => $columns,
             'rows' => array_map(
-                fn (array $idea): array => $property ? [...$this->keywordRow($idea), ...$this->gscCells($idea['gsc'])] : $this->keywordRow($idea),
+                fn (array $idea): array => $property ? [...$this->keywordRow($idea), ...$this->gscCells($idea)] : $this->keywordRow($idea),
                 $ideas,
             ),
         ], fn (mixed $value): bool => $value !== null));

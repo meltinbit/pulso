@@ -59,9 +59,9 @@ test('get-keyword-ideas adds Search Console columns when a property is given', f
     PulsoServer::tool(GetKeywordIdeasTool::class, ['seeds' => 'imu', 'property_id' => $this->property->id])
         ->assertOk()
         ->assertSee('"property":"Calcoli Site"')
-        ->assertSee('"gsc_pos","gsc_impr","gsc_clicks"')
-        ->assertSee('1.46,6.4,90,7]')
-        ->assertSee('1.46,null,null,null]');
+        ->assertSee('"gsc_pos","gsc_impr","gsc_clicks","variant_of"')
+        ->assertSee('1.46,6.4,90,7,null]')
+        ->assertSee('1.46,null,null,null,null]');
 });
 
 test('get-keyword-ideas resolves a location name through geo target suggestions', function () {
@@ -89,8 +89,8 @@ test('get-keyword-ideas cannot read another user property', function () {
 test('get-keyword-metrics returns monthly volumes aligned with months', function () {
     PulsoServer::tool(GetKeywordMetricsTool::class, ['keywords' => ['calcolo imu']])
         ->assertOk()
-        ->assertSee('"months":["2025-11","2025-12","2026-01"')
-        ->assertSee('[1000,1000,1000,1300,1300,1300,1300,1300,1300,1500,1500,1500]');
+        ->assertSee('"months":["2025-10","2025-11","2025-12","2026-01"')
+        ->assertSee('[1000,1000,1000,1300,1300,1300,1300,1300,1300,1300,1500,1500,1500]');
 });
 
 test('search-geo-targets lists ids, names and types', function () {
@@ -106,7 +106,7 @@ test('get-keyword-gap summarizes present and missing keywords', function () {
 
     PulsoServer::tool(GetKeywordGapTool::class, ['property_id' => $this->property->id, 'seeds' => ['imu']])
         ->assertOk()
-        ->assertSee('"summary":{"total":2,"present":1,"missing":1,"missing_volume":800}')
+        ->assertSee('"summary":{"total":2,"present":1,"variants":0,"missing":1,"missing_volume":800}')
         ->assertSee('["calcolo imu",5400');
 
     PulsoServer::tool(GetKeywordGapTool::class, ['property_id' => $this->property->id, 'seeds' => ['imu'], 'only_gap' => true])

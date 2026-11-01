@@ -44,9 +44,9 @@ test('maps keyword ideas from the REST response', function () {
         'cpc_high' => 1.46,
         'trend' => 50.0,
     ]);
-    expect($ideas[0]['monthly'])->toHaveCount(12);
-    expect($ideas[0]['monthly'][0])->toBe(['month' => '2025-11', 'searches' => 1000]);
-    expect($ideas[0]['monthly'][11]['month'])->toBe('2026-10');
+    expect($ideas[0]['monthly'])->toHaveCount(13);
+    expect($ideas[0]['monthly'][0])->toBe(['month' => '2025-10', 'searches' => 1000]);
+    expect($ideas[0]['monthly'][12])->toBe(['month' => '2026-10', 'searches' => 1500]);
 
     expect($ideas[1])->toMatchArray([
         'volume' => null,
@@ -74,7 +74,11 @@ test('sends seeds, Italian language, Italy and Google Search network with Ads he
             && $request['geoTargetConstants'] === ['geoTargetConstants/2380']
             && $request['keywordPlanNetwork'] === 'GOOGLE_SEARCH'
             && $request['keywordSeed'] === ['keywords' => ['calcolo imu']]
-            && $request['pageSize'] === 50;
+            && $request['pageSize'] === 50
+            && $request['historicalMetricsOptions'] === ['yearMonthRange' => [
+                'start' => ['year' => now()->subMonths(24)->year, 'month' => strtoupper(now()->startOfMonth()->subMonths(24)->englishMonth)],
+                'end' => ['year' => now()->year, 'month' => strtoupper(now()->englishMonth)],
+            ]];
     });
 });
 

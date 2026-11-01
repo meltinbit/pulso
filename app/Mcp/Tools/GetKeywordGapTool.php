@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Keyword gap for a property: generates Google Ads keyword ideas from seeds and marks for each one whether the site already appears in Search Console for that exact query (last 90 days, accent and case insensitive), with average position and impressions. Returns a summary (present, missing, monthly search volume the site is missing) and rows sorted by volume. Use only_gap to list just the keywords where the site does not appear.')]
+#[Description('Keyword gap for a property: generates Google Ads keyword ideas from seeds and marks for each one whether the site already appears in Search Console for that exact query (last 90 days, accent and case insensitive), with average position and impressions. Close variants that Google reports with identical metrics are linked to the keyword the site ranks for (variant_of) instead of counting as gaps. Returns a summary (present, variants, missing, monthly search volume the site is missing, each variant group counted once) and rows sorted by volume. Use only_gap to list just the keywords where the site does not appear.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetKeywordGapTool extends Tool
@@ -61,16 +61,16 @@ class GetKeywordGapTool extends Tool
         usort($annotated, fn (array $a, array $b): int => ($b['volume'] ?? -1) <=> ($a['volume'] ?? -1));
 
         $rows = ($validated['only_gap'] ?? false)
-            ? array_values(array_filter($annotated, fn (array $row): bool => $row['gsc'] === null))
+            ? array_values(array_filter($annotated, KeywordGapService::isGap(...)))
             : $annotated;
 
         return $this->compactResponse([
             'property' => $property->display_name,
             'geo' => $geo,
             'summary' => $this->gap->summarize($annotated),
-            'legend' => $this->legend().'; gsc_*=Search Console last 90 days, null = site not present',
-            'cols' => [...$this->keywordColumns(), 'gsc_pos', 'gsc_impr', 'gsc_clicks'],
-            'rows' => array_map(fn (array $row): array => [...$this->keywordRow($row), ...$this->gscCells($row['gsc'])], $rows),
+            'legend' => $this->legend().$this->gscLegend(),
+            'cols' => [...$this->keywordColumns(), ...$this->gscColumns()],
+            'rows' => array_map(fn (array $row): array => [...$this->keywordRow($row), ...$this->gscCells($row)], $rows),
         ]);
     }
 
@@ -94,7 +94,7 @@ class GetKeywordGapTool extends Tool
             'limit' => $schema->integer()
                 ->description('Maximum ideas to analyse. Defaults to 100, maximum 200.'),
             'only_gap' => $schema->boolean()
-                ->description('Return only keywords where the site does not appear in Search Console. The summary always covers all ideas.'),
+                ->description('Return only keywords where the site does not appear in Search Console, neither for the keyword nor for a variant of it. The summary always covers all ideas.'),
         ];
     }
 }

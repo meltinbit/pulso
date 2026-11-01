@@ -48,7 +48,7 @@ Se la schermata di consenso OAuth è in modalità *Testing*, il refresh token sc
 Sidebar → **Keywords**. Il confronto con Search Console usa la property attiva.
 
 - Keyword di partenza separate da virgola (max 20), URL opzionale, località con autocomplete (es. "Ferrara" → provincia o città), lingua.
-- Tabella ordinabile: volume, trend (sparkline 12 mesi e variazione ultimi 3 mesi vs primi 3), concorrenza e indice, CPC min–max, posizione GSC o "not present".
+- Tabella ordinabile: volume, trend (sparkline degli ultimi 13 mesi e variazione dell'ultimo mese disponibile rispetto allo stesso mese dell'anno prima, così le keyword stagionali non sembrano in crollo), concorrenza e indice, CPC min–max, posizione GSC, "variant of …" o "not present".
 - **Only gap** mostra solo le keyword per cui il sito non compare; **CSV** esporta la vista corrente con i volumi mensili.
 - In alto: operazioni API usate oggi rispetto al limite.
 
@@ -68,4 +68,6 @@ Sidebar → **Keywords**. Il confronto con Search Console usa la property attiva
 - **Volumi**: Google restituisce un singolo valore approssimato (arrotondato), mai una fascia; la UI lo indica come approssimazione. Se un volume manca viene mostrato `–`.
 - **CPC**: nella valuta dell'account Google Ads (`GOOGLE_ADS_CUSTOMER_ID`).
 - **Gap**: confronto esatto dopo normalizzazione (minuscole, accenti, spazi) con le query GSC già sincronizzate in `property_search_queries`; nessuna chiamata API aggiuntiva.
+- **Varianti**: Google raggruppa le varianti vicine ("calcolo imu", "calcolatori imu") e dà a tutte lo stesso volume e la stessa serie mensile. Le keyword con metriche identiche (volume ≥ 50) sono trattate come un gruppo: se il sito compare per una, le altre sono marcate `variant_of` e non contano come gap, e nel volume mancante ogni gruppo conta una volta sola.
+- **Mesi**: Pulso chiede a Google una finestra di 24 mesi e tiene gli ultimi 13 disponibili; l'ultimo mese pubblicato da Google è di solito uno o due mesi indietro.
 - **Errori**: token solo test, permessi mancanti, customer ID errato, quota esaurita, refresh token scaduto e limite giornaliero sono mostrati con un messaggio leggibile (dettagli completi nel log).
