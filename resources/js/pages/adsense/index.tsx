@@ -39,6 +39,7 @@ interface Report {
     changes: Record<string, number | null>;
     daily: DailyRow[];
     breakdowns: Record<'country' | 'platform' | 'ad_unit', BreakdownRow[]>;
+    lifetime: { from: string | null; to: string | null; earnings: number };
     last_synced_at: string | null;
 }
 
@@ -194,6 +195,8 @@ export default function AdSenseIndex() {
 
                     <EarningsChart daily={report.daily} money={money} />
 
+                    <DailyEarningsTable report={report} money={money} number={number} />
+
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                         {(Object.keys(breakdownTitles) as (keyof Report['breakdowns'])[]).map((key) => (
                             <BreakdownTable key={key} title={breakdownTitles[key]} rows={report.breakdowns[key]} money={money} number={number} />
@@ -323,6 +326,74 @@ function EarningsChart({ daily, money }: { daily: DailyRow[]; money: Intl.Number
                             />
                         </ComposedChart>
                     </ResponsiveContainer>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function DailyEarningsTable({ report, money, number }: { report: Report; money: Intl.NumberFormat; number: Intl.NumberFormat }) {
+    const rows = [...report.daily].reverse();
+    const dateFormat = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const formatDate = (date: string) => dateFormat.format(new Date(`${date}T00:00:00`));
+
+    return (
+        <Card className="animate-fade-up">
+            <CardHeader className="pb-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <CardTitle className="text-muted-foreground text-sm font-medium tracking-wider uppercase">Earnings by day</CardTitle>
+                    <div className="flex gap-6 text-right">
+                        <div>
+                            <p className="text-muted-foreground text-xs">Period total</p>
+                            <p className="font-mono text-lg font-semibold">{money.format(report.totals.earnings)}</p>
+                        </div>
+                        <div>
+                            <p className="text-muted-foreground text-xs">
+                                All time{report.lifetime.from && <> · since {formatDate(report.lifetime.from)}</>}
+                            </p>
+                            <p className="text-primary font-mono text-lg font-semibold">{money.format(report.lifetime.earnings)}</p>
+                        </div>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="max-h-[480px] overflow-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-card sticky top-0">
+                            <tr className="text-muted-foreground border-b text-xs tracking-wider uppercase">
+                                <th className="pb-3 text-left font-medium">Date</th>
+                                <th className="pb-3 text-right font-medium">Earnings</th>
+                                <th className="pb-3 text-right font-medium">Views</th>
+                                <th className="hidden pb-3 text-right font-medium sm:table-cell">Clicks</th>
+                                <th className="pb-3 text-right font-medium">RPM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row) => (
+                                <tr key={row.date} className="hover:bg-muted/50 border-border/50 border-b transition-colors">
+                                    <td className="py-2 text-xs whitespace-nowrap">{formatDate(row.date)}</td>
+                                    <td className="py-2 text-right font-mono text-xs font-medium">{money.format(row.earnings)}</td>
+                                    <td className="py-2 text-right font-mono text-xs">{number.format(row.page_views)}</td>
+                                    <td className="hidden py-2 text-right font-mono text-xs sm:table-cell">{number.format(row.clicks)}</td>
+                                    <td className="py-2 text-right font-mono text-xs">{money.format(row.page_rpm)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        {rows.length > 0 && (
+                            <tfoot className="bg-card sticky bottom-0">
+                                <tr className="border-t font-semibold">
+                                    <td className="py-2.5 text-xs">Total</td>
+                                    <td className="py-2.5 text-right font-mono text-xs">{money.format(report.totals.earnings)}</td>
+                                    <td className="py-2.5 text-right font-mono text-xs">{number.format(report.totals.page_views)}</td>
+                                    <td className="hidden py-2.5 text-right font-mono text-xs sm:table-cell">
+                                        {number.format(report.totals.clicks)}
+                                    </td>
+                                    <td className="py-2.5 text-right font-mono text-xs">{money.format(report.totals.page_rpm)}</td>
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+                    {rows.length === 0 && <p className="text-muted-foreground py-6 text-center text-sm">No data in this period.</p>}
                 </div>
             </CardContent>
         </Card>

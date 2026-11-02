@@ -146,6 +146,11 @@
         @apply border-border;
     }
 
+    html {
+        /* Allow scrolling but block pinch-zoom (iOS Safari ignores user-scalable=no). */
+        touch-action: pan-x pan-y;
+    }
+
     body {
         @apply bg-background text-foreground;
     }

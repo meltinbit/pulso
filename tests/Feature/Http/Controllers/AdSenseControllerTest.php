@@ -69,6 +69,11 @@ test('renders totals with ratios weighted over the range and a previous period c
             ->where('report.previous.totals.earnings', 4)
             ->where('report.changes.earnings', 100)
             ->has('report.daily', 2)
+            ->where('report.daily.0.date', '2026-05-18')
+            ->where('report.daily.0.earnings', 2)
+            ->where('report.lifetime.from', '2026-05-10')
+            ->where('report.lifetime.to', '2026-05-19')
+            ->where('report.lifetime.earnings', 12)
             ->where('report.breakdowns.country.0.name', 'Italy')
             ->has('report.breakdowns.country', 2));
 });

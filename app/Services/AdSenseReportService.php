@@ -27,6 +27,7 @@ class AdSenseReportService
      *     changes: array<string, float|null>,
      *     daily: array<int, array<string, int|float|string>>,
      *     breakdowns: array<string, array<int, array<string, int|float|string>>>,
+     *     lifetime: array{from: string|null, to: string|null, earnings: float},
      *     last_synced_at: string|null,
      * }
      */
@@ -59,6 +60,7 @@ class AdSenseReportService
                 ->except(PropertyAdsenseMetric::DIMENSION_TOTAL)
                 ->map(fn ($reportDimension, string $dimension): array => $this->breakdown($property, $dimension, $from, $to, $breakdownLimit))
                 ->all(),
+            'lifetime' => $this->lifetime($property),
             'last_synced_at' => $property->adsenseMetrics()->max('updated_at'),
         ];
     }
@@ -78,6 +80,26 @@ class AdSenseReportService
             ->first();
 
         return $this->withRatios((array) $row);
+    }
+
+    /**
+     * Earnings over every stored day, independent of the selected period.
+     *
+     * @return array{from: string|null, to: string|null, earnings: float}
+     */
+    private function lifetime(GaProperty $property): array
+    {
+        $row = $property->adsenseMetrics()
+            ->toBase()
+            ->where('dimension', PropertyAdsenseMetric::DIMENSION_TOTAL)
+            ->selectRaw('MIN(date) as first_date, MAX(date) as last_date, COALESCE(SUM(earnings), 0) as earnings')
+            ->first();
+
+        return [
+            'from' => $row?->first_date ? substr((string) $row->first_date, 0, 10) : null,
+            'to' => $row?->last_date ? substr((string) $row->last_date, 0, 10) : null,
+            'earnings' => round((float) ($row->earnings ?? 0), 2),
+        ];
     }
 
     /**
