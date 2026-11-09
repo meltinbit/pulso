@@ -257,7 +257,7 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `get-property-snapshots` | Get daily snapshots for a property within a date range |
 | `get-property-sources` | Get aggregated traffic sources for a property |
 | `get-property-pages` | Get top pages with per-page engagement metrics |
-| `get-property-search-queries` | Get top Google Search Console queries |
+| `get-property-search-queries` | Get top Google Search Console queries, filterable by page (URL or prefix) and query text |
 | `get-property-index-status` | Inspect indexed/non-indexed pages with coverage reasons |
 | `get-property-summary` | Comprehensive summary with averages, anomalies, sources, pages, and queries |
 

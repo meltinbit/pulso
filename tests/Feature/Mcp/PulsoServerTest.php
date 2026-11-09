@@ -362,6 +362,67 @@ it('sums search query metrics across every day in the range', function () {
     $response->assertSee('"avg_position": 3');
 });
 
+it('filters search queries by page prefix, exact page and query text', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $property = GaProperty::factory()->for($user)->create(['website_url' => 'https://example.com/']);
+
+    $rows = [
+        ['calcolatore imu', 'https://example.com/tasse/imu'],
+        ['calcolatore tari', 'https://example.com/tasse/tari'],
+        ['ricetta pizza', 'https://example.com/cucina/pizza'],
+        ['100% sconto', 'https://example.com/tasse_vecchie/sconto'],
+    ];
+
+    foreach ($rows as [$query, $page]) {
+        PropertySearchQuery::factory()->for($property, 'gaProperty')->create([
+            'date' => now()->subDay()->toDateString(),
+            'query' => $query,
+            'page' => $page,
+            'clicks' => 10,
+            'impressions' => 100,
+        ]);
+    }
+
+    $byPrefix = PulsoServer::tool(GetPropertySearchQueriesTool::class, [
+        'property_id' => $property->id,
+        'page' => '/tasse/',
+    ]);
+
+    $byPrefix->assertOk();
+    $byPrefix->assertSee('calcolatore imu');
+    $byPrefix->assertSee('calcolatore tari');
+    $byPrefix->assertDontSee('ricetta pizza');
+    $byPrefix->assertDontSee('100% sconto');
+
+    $exact = PulsoServer::tool(GetPropertySearchQueriesTool::class, [
+        'property_id' => $property->id,
+        'page' => 'https://example.com/tasse/imu',
+        'page_match' => 'exact',
+    ]);
+
+    $exact->assertSee('calcolatore imu');
+    $exact->assertDontSee('calcolatore tari');
+
+    $byText = PulsoServer::tool(GetPropertySearchQueriesTool::class, [
+        'property_id' => $property->id,
+        'query_contains' => 'CALCOLATORE',
+        'limit' => 1,
+    ]);
+
+    $byText->assertSee('"count": 1');
+    $byText->assertDontSee('ricetta pizza');
+
+    $literalPercent = PulsoServer::tool(GetPropertySearchQueriesTool::class, [
+        'property_id' => $property->id,
+        'query_contains' => '0%',
+    ]);
+
+    $literalPercent->assertSee('100% sconto');
+    $literalPercent->assertDontSee('calcolatore imu');
+});
+
 it('cannot access another users property through mcp tools', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
