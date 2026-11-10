@@ -1,6 +1,7 @@
 # Open
 
 ## Open questions
+- Bing: nella fase 1 serve anche una pagina/card nell'app web, o bastano impostazioni + MCP? (docs/bing-webmaster.md, fase 3)
 
 ## Parked
 
@@ -13,3 +14,4 @@
 - A6: Righe Search Console salvate per giorno (fino a 16 mesi) invece di una top list troncata — commit 98ecee4 (02/11).
 
 ## Backlog
+- B1: Integrazione Bing Webmaster Tools — piano e verifiche API in docs/bing-webmaster.md; prima ricontrollare i dati di calcolato.it, ancora in elaborazione su Bing (10/11).
