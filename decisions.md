@@ -6,3 +6,4 @@
 - D4: Pulso headless: la home del pannello è la pagina Health (salute connessioni e freschezza dati); tolti dashboard, report traffic/content/audience, registrazione e colonne plan/properties_limit/trial_ends_at (11/11).
 - D5: Pulso è l'unico punto di connessione degli agenti: Meta Ads entra come wrapper in Pulso sulla Marketing API (token utente di sistema cifrato in app_settings), non come MCP ufficiale di Meta collegato a Jérôme (11/11).
 - D6: Visibilità AI solo su ChatGPT (OpenAI API con ricerca web) con un modello leggero (gpt-5.6-luna), giro settimanale, tetto di spesa 3 €/mese; modello, tetto e frequenza configurabili nelle impostazioni (11/11).
+- D7: I passaggi dei crawler AI li mandano i siti a Pulso (endpoint con token per sito e middleware nei siti Laravel); Pulso non accede a VPS, log o Cloudflare (11/11).

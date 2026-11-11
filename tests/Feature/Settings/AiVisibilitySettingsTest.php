@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\RunAiVisibilityChecks;
+use App\Models\GaProperty;
 use App\Models\User;
 use App\Services\AiVisibilityService;
 use App\Services\SettingService;
@@ -61,4 +62,21 @@ it('shows the defaults without exposing the key and runs on demand', function ()
     $this->actingAs($this->user)->post(route('settings.ai-visibility.run'))->assertRedirect();
 
     Queue::assertPushed(RunAiVisibilityChecks::class, fn (RunAiVisibilityChecks $job): bool => $job->force);
+});
+
+it('generates a crawler token shown once and stores only its hash', function () {
+    $property = GaProperty::factory()->for($this->user)->create();
+
+    $response = $this->actingAs($this->user)
+        ->post(route('settings.ai-visibility.crawler-token', $property))
+        ->assertRedirect();
+
+    $token = $response->getSession()->get('crawler_token')['token'];
+
+    expect($token)->toStartWith('pcr_')
+        ->and($property->fresh()->crawler_token_hash)->toBe(hash('sha256', $token));
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('settings.ai-visibility.crawler-token', $property))
+        ->assertForbidden();
 });

@@ -54,6 +54,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
                 'mcp_token' => $request->session()->get('mcp_token'),
+                'crawler_token' => $request->session()->get('crawler_token'),
             ],
         ]);
     }

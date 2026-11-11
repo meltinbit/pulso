@@ -19,6 +19,14 @@ interface PropertyRow {
     active_prompts: number;
     brand_terms: string[];
     last_run: string | null;
+    has_crawler_token: boolean;
+    last_crawler_visit: string | null;
+}
+
+interface CrawlerTokenFlash {
+    property_id: number;
+    token: string;
+    url: string;
 }
 
 interface AiVisibilityProps {
@@ -47,7 +55,7 @@ export default function AiVisibilitySettings({
     expectedMonthUsd,
     properties,
 }: AiVisibilityProps) {
-    const { flash } = usePage<{ flash?: { success?: string } }>().props;
+    const { flash } = usePage<{ flash?: { success?: string; crawler_token?: CrawlerTokenFlash } }>().props;
     const { data, setData, put, errors, processing, recentlySuccessful } = useForm({
         openai_api_key: '',
         model,
@@ -141,46 +149,75 @@ export default function AiVisibilitySettings({
                     </form>
                 </div>
 
-                {hasKey && (
-                    <>
-                        <Separator />
+                <Separator />
 
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between gap-4">
-                                <HeadingSmall title="Sites" description="Prompts tracked per site. Runs every Monday at 07:00." />
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => router.post(route('settings.ai-visibility.run'), {}, { preserveScroll: true })}
-                                >
-                                    Run now
-                                </Button>
-                            </div>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <HeadingSmall
+                            title="Sites"
+                            description="Prompts tracked per site (ChatGPT runs every Monday at 07:00) and AI crawler visits reported by the site itself."
+                        />
+                        {hasKey && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.post(route('settings.ai-visibility.run'), {}, { preserveScroll: true })}
+                            >
+                                Run now
+                            </Button>
+                        )}
+                    </div>
 
-                            {flash?.success && <p className="text-sm text-emerald-500">{flash.success}</p>}
+                    {flash?.success && <p className="text-sm text-emerald-500">{flash.success}</p>}
 
-                            <div className="space-y-2">
-                                {properties.map((property) => (
-                                    <div
-                                        key={property.id}
-                                        className="flex flex-col gap-1 rounded-lg border p-3 text-sm sm:flex-row sm:justify-between"
-                                    >
-                                        <div className="min-w-0">
-                                            <p className="truncate font-medium">{property.display_name}</p>
-                                            <p className="text-muted-foreground text-xs">
-                                                {property.website_url ?? 'no website URL: not tracked'}
-                                                {property.brand_terms.length > 0 && ` · brand: ${property.brand_terms.join(', ')}`}
-                                            </p>
-                                        </div>
-                                        <p className="text-muted-foreground shrink-0">
-                                            {property.active_prompts} prompts{property.last_run && ` · last run ${property.last_run}`}
+                    <div className="space-y-2">
+                        {properties.map((property) => (
+                            <div key={property.id} className="space-y-2 rounded-lg border p-3 text-sm">
+                                <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                                    <div className="min-w-0">
+                                        <p className="truncate font-medium">{property.display_name}</p>
+                                        <p className="text-muted-foreground text-xs">
+                                            {property.website_url ?? 'no website URL: not tracked'}
+                                            {property.brand_terms.length > 0 && ` · brand: ${property.brand_terms.join(', ')}`}
                                         </p>
                                     </div>
-                                ))}
+                                    <p className="text-muted-foreground shrink-0 text-xs sm:text-right">
+                                        {property.active_prompts} prompts{property.last_run && ` · last run ${property.last_run}`}
+                                        <br />
+                                        {property.has_crawler_token
+                                            ? `crawlers: ${property.last_crawler_visit ? `last visit ${property.last_crawler_visit}` : 'no visit reported yet'}`
+                                            : 'crawlers: not connected'}
+                                    </p>
+                                </div>
+
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (
+                                            !property.has_crawler_token ||
+                                            confirm('A new token replaces the current one: the site stops reporting until you update it. Continue?')
+                                        ) {
+                                            router.post(route('settings.ai-visibility.crawler-token', property.id), {}, { preserveScroll: true });
+                                        }
+                                    }}
+                                >
+                                    {property.has_crawler_token ? 'Regenerate crawler token' : 'Connect AI crawlers'}
+                                </Button>
+
+                                {flash?.crawler_token?.property_id === property.id && (
+                                    <div className="bg-muted space-y-1 rounded-md p-3 font-mono text-xs break-all">
+                                        <p className="font-sans">
+                                            Add these lines to the site .env, then the ReportAiCrawlers middleware from the Pulso README:
+                                        </p>
+                                        <p>PULSO_CRAWLER_URL={flash.crawler_token.url}</p>
+                                        <p>PULSO_CRAWLER_TOKEN={flash.crawler_token.token}</p>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    </>
-                )}
+                        ))}
+                    </div>
+                </div>
             </SettingsLayout>
         </AppLayout>
     );

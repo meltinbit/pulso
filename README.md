@@ -275,6 +275,7 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `get-meta-ads` / `get-meta-breakdown` | Meta ads or ad sets compared, and results by age, gender, country, region, placement or device |
 | `set-ai-visibility-prompts` | Manage the GEO prompts tracked per site and the brand terms that count as a mention |
 | `get-ai-visibility` | Share of ChatGPT answers citing the site over time, prompts gained or lost, cited pages, competitor domains |
+| `get-ai-crawlers` | AI crawler visits reported by the site: per bot (training, search, user), per page, errors, new content not visited yet |
 
 All tools support date ranges (`from`/`to`) for trend analysis over time where applicable. Trend tools also return the annotations of their range, so causes and effects come in one call; the **Annotations** page lists them and lets you delete wrong ones.
 
@@ -319,6 +320,68 @@ If the token stops working the Health page says so. Conversions are one Meta act
 Pulso asks the tracked prompts to ChatGPT through the OpenAI Responses API with web search (country from `AI_VISIBILITY_COUNTRY`, default `IT`) and records whether each answer cites the site, at which position among the cited sites, and which competitors are cited instead. The agents choose the prompts with `set-ai-visibility-prompts`.
 
 In **Settings > AI visibility** save an OpenAI API key and choose the model (default `gpt-5.6-luna`, about 1.2 cents per question, mostly the web search fee), the monthly cap in euro (default 3 €) and the frequency (weekly on Monday at 07:00, every two weeks, or off). Before each question Pulso checks what the month has already cost and stops before the cap, counting dollars as euro so the cap is never exceeded; a Telegram message says when it happens. Prices per model are in `config/services.php`. Run by hand with `php artisan pulso:ai-visibility --force`.
+
+### AI crawlers
+
+AI crawlers do not run JavaScript, so GA4 never sees them. Each site reports their visits to Pulso instead: Pulso only receives, it never reads servers, logs or CDNs.
+
+1. In **Settings > AI visibility** click **Connect AI crawlers** on the site and copy the two lines shown (the token is shown once).
+2. In the site (Laravel) add them to `.env` and to `config/services.php`:
+
+```php
+'pulso_crawlers' => [
+    'url' => env('PULSO_CRAWLER_URL'),
+    'token' => env('PULSO_CRAWLER_TOKEN'),
+],
+```
+
+3. Add this middleware as `app/Http/Middleware/ReportAiCrawlers.php` and register it globally in `bootstrap/app.php` with `$middleware->append(\App\Http\Middleware\ReportAiCrawlers::class);`. It only acts on AI crawler user agents and reports after the response has been sent, so visitors never wait for it.
+
+```php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\Response;
+
+class ReportAiCrawlers
+{
+    private const BOTS = '/GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|Google-CloudVertexBot|meta-externalagent|meta-externalfetcher|Amazonbot|Bytespider|CCBot|DuckAssistBot|MistralAI-User/i';
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        return $next($request);
+    }
+
+    public function terminate(Request $request, Response $response): void
+    {
+        $userAgent = (string) $request->userAgent();
+        $token = config('services.pulso_crawlers.token');
+
+        if (! $token || ! preg_match(self::BOTS, $userAgent)) {
+            return;
+        }
+
+        try {
+            Http::withToken($token)->timeout(3)->post(config('services.pulso_crawlers.url'), [
+                'hits' => [[
+                    'user_agent' => $userAgent,
+                    'path' => $request->getRequestUri(),
+                    'status' => $response->getStatusCode(),
+                    'at' => now()->toIso8601String(),
+                ]],
+            ]);
+        } catch (\Throwable) {
+            // Reporting must never break the site.
+        }
+    }
+}
+```
+
+Pages served directly by the web server or a cache (static files, full-page cache) never reach Laravel and are not reported. User agents are not verified against the vendors' IP ranges. `get-ai-crawlers` returns the visits per bot and page, errors served to crawlers, and new content pages no AI crawler has visited yet; data is kept for 400 days.
 
 ## Testing
 

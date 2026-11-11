@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/ai-visibility', [AiVisibilitySettingsController::class, 'edit'])->name('settings.ai-visibility');
     Route::put('settings/ai-visibility', [AiVisibilitySettingsController::class, 'update'])->name('settings.ai-visibility.update');
     Route::post('settings/ai-visibility/run', [AiVisibilitySettingsController::class, 'run'])->name('settings.ai-visibility.run');
+    Route::post('settings/ai-visibility/properties/{property}/crawler-token', [AiVisibilitySettingsController::class, 'crawlerToken'])->name('settings.ai-visibility.crawler-token');
 
     Route::get('settings/mcp', [McpSettingsController::class, 'edit'])->name('settings.mcp');
     Route::post('settings/mcp', [McpSettingsController::class, 'store'])->name('settings.mcp.store');

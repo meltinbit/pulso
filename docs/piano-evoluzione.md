@@ -95,8 +95,8 @@ In più: pagina admin **Annotations** per controllare le voci e cancellare quell
 
 **Crawler AI**
 
-- [ ] Rilevare passaggi di GPTBot, ClaudeBot, PerplexityBot e simili, per pagina
-- [ ] Fonte: Cloudflare, se sposto lì i domini; altrimenti log del server
+- [x] Rilevare passaggi di GPTBot, ClaudeBot, PerplexityBot e simili, per pagina — *16 crawler AI divisi in training / search / user; tool `get-ai-crawlers` con pagine visitate, errori e contenuti nuovi non ancora visitati*
+- [x] ~~Fonte: Cloudflare, se sposto lì i domini; altrimenti log del server~~ — *scelto diversamente con Fabio: sono i siti a mandare le visite a Pulso (endpoint `/api/ai-crawlers`, token per sito, middleware Laravel nel README), senza dipendere da VPS, log o DNS*
 
 **Bing come segnale GEO**
 

@@ -11,6 +11,7 @@ use App\Services\OpenAiResponsesClient;
 use App\Services\SettingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -41,6 +42,7 @@ class AiVisibilitySettingsController extends Controller
                 ->where('is_active', true)
                 ->withCount(['aiVisibilityPrompts as active_prompts' => fn ($query) => $query->where('is_active', true)])
                 ->withMax('aiVisibilityChecks', 'run_date')
+                ->withMax('aiCrawlerVisits', 'last_seen_at')
                 ->orderBy('display_name')
                 ->get()
                 ->map(fn (GaProperty $property): array => [
@@ -50,6 +52,8 @@ class AiVisibilitySettingsController extends Controller
                     'active_prompts' => $property->active_prompts,
                     'brand_terms' => $property->ai_brand_terms ?? [],
                     'last_run' => $property->ai_visibility_checks_max_run_date ? substr((string) $property->ai_visibility_checks_max_run_date, 0, 10) : null,
+                    'has_crawler_token' => $property->crawler_token_hash !== null,
+                    'last_crawler_visit' => $property->ai_crawler_visits_max_last_seen_at ? substr((string) $property->ai_crawler_visits_max_last_seen_at, 0, 16) : null,
                 ]),
         ]);
     }
@@ -81,6 +85,22 @@ class AiVisibilitySettingsController extends Controller
         $this->settings->set($userId, AiVisibilityService::FREQUENCY_SETTING, $validated['frequency'], 'ai_visibility');
 
         return back()->with('success', 'Impostazioni AI visibility salvate.');
+    }
+
+    /**
+     * A new token for the sites to report AI crawler visits; shown once,
+     * only its hash is stored.
+     */
+    public function crawlerToken(Request $request, GaProperty $property): RedirectResponse
+    {
+        abort_unless($property->user_id === $request->user()->id, 403);
+
+        $token = 'pcr_'.Str::random(48);
+        $property->forceFill(['crawler_token_hash' => hash('sha256', $token)])->save();
+
+        return back()
+            ->with('success', "Token crawler per {$property->display_name} generato: copialo ora, non verrà più mostrato.")
+            ->with('crawler_token', ['property_id' => $property->id, 'token' => $token, 'url' => route('api.ai-crawlers')]);
     }
 
     public function run(Request $request): RedirectResponse

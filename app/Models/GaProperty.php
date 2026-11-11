@@ -13,6 +13,10 @@ class GaProperty extends Model
     /** @use HasFactory<GaPropertyFactory> */
     use HasFactory;
 
+    protected $hidden = [
+        'crawler_token_hash',
+    ];
+
     protected $fillable = [
         'user_id',
         'ga_connection_id',
@@ -100,5 +104,10 @@ class GaProperty extends Model
     public function aiVisibilityChecks(): HasMany
     {
         return $this->hasMany(AiVisibilityCheck::class);
+    }
+
+    public function aiCrawlerVisits(): HasMany
+    {
+        return $this->hasMany(AiCrawlerVisit::class);
     }
 }
