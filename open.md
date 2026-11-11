@@ -1,8 +1,9 @@
 # Open
 
 ## Open questions
-- Fase 1 completata: Fabio deve rivederla prima della Fase 2 (registro modifiche) (11/11).
-- Deploy: le migration add_bing_tables e drop_funnel_tables vanno in produzione al prossimo deploy; drop_plan_fields e create_mcp_call_logs sono già applicate sul DB condiviso (11/11).
+- Fase 2 completata: Fabio deve rivederla prima della Fase 3 (Ads in lettura) (11/11).
+- Jérôme: aggiungere ai prompt degli agenti la regola "chiama add-annotation di Pulso ogni volta che pubblichi o modifichi qualcosa su un sito" e il parametro &agent= negli URL dei connettori (11/11).
+- Deploy: le migration add_bing_tables, drop_funnel_tables e create_property_annotations vanno in produzione al prossimo deploy; drop_plan_fields e create_mcp_call_logs sono già applicate sul DB condiviso (11/11).
 
 ## Parked
 

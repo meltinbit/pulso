@@ -3,7 +3,7 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Camera, Coins, Globe, HeartPulse, KeyRound, ScrollText, Settings } from 'lucide-react';
+import { Camera, Coins, Globe, HeartPulse, KeyRound, NotebookPen, ScrollText, Settings } from 'lucide-react';
 import AppLogo from './app-logo';
 import { PropertyAwareLink } from './property-aware-link';
 import { PropertySwitcher } from './property-switcher';
@@ -18,6 +18,11 @@ const mainNavItems: NavItem[] = [
         title: 'MCP log',
         url: '/mcp-log',
         icon: ScrollText,
+    },
+    {
+        title: 'Annotations',
+        url: '/annotations',
+        icon: NotebookPen,
     },
     {
         title: 'Snapshots',

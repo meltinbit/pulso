@@ -254,6 +254,8 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | Tool | Description |
 |------|-------------|
 | `list-properties` | List all active GA4 properties with latest trend |
+| `add-annotation` | Record a change made to a site (content, technical, campaign, deploy) in its change log |
+| `list-annotations` | List the change log of a site or of all sites |
 | `get-property-snapshots` | Get daily snapshots for a property within a date range |
 | `get-property-sources` | Get aggregated traffic sources for a property |
 | `get-property-pages` | Get top pages with per-page engagement metrics |
@@ -268,7 +270,7 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `submit-urls-to-bing` | Ask Bing to recrawl changed pages, within the daily quota (write) |
 | `get-keyword-ideas` / `get-keyword-metrics` / `get-keyword-gap` / `search-geo-targets` | Google Ads Keyword Planner research (see `docs/google-ads-keywords.md`) |
 
-All tools support date ranges (`from`/`to`) for trend analysis over time where applicable.
+All tools support date ranges (`from`/`to`) for trend analysis over time where applicable. Trend tools also return the annotations of their range, so causes and effects come in one call; the **Annotations** page lists them and lets you delete wrong ones.
 
 `get-property-index-status` works in two modes:
 
@@ -289,7 +291,7 @@ https://your-domain.com/mcp/pulso?token=YOUR_TOKEN
 
 Name each agent with `&agent=seo` (or the `X-Pulso-Agent` header): every tool call is recorded in the **MCP log** page with the agent, the size of the answer (≈ tokens) and any error, and kept for 90 days.
 
-All tools are read-only except `submit-urls-to-bing`.
+All tools are read-only except `add-annotation` and `submit-urls-to-bing`.
 
 ### Bing Webmaster Tools
 

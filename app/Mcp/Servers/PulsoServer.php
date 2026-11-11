@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Tools\AddAnnotationTool;
 use App\Mcp\Tools\GetKeywordGapTool;
 use App\Mcp\Tools\GetKeywordIdeasTool;
 use App\Mcp\Tools\GetKeywordMetricsTool;
@@ -16,6 +17,7 @@ use App\Mcp\Tools\GetPropertySearchQueriesTool;
 use App\Mcp\Tools\GetPropertySnapshotsTool;
 use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
+use App\Mcp\Tools\ListAnnotationsTool;
 use App\Mcp\Tools\ListPropertiesTool;
 use App\Mcp\Tools\SearchGeoTargetsTool;
 use App\Mcp\Tools\SubmitUrlsToBingTool;
@@ -32,6 +34,8 @@ Workflow: start with list-properties for an overview, then use get-property-summ
 
 Note: Search Console data has a 2-3 day delay from Google, so the most recent days may not have search query data yet, and the last few days keep being revised upward as Google consolidates them. The summary tool automatically falls back to the latest day that has search queries. Because query rows are stored per day rather than as a truncated top list, get-property-search-queries sums a date range correctly: totals are real range totals, and CTR and position are weighted by impressions. Landing pages are returned as full URLs; get-property-search-queries can be filtered to one page or a URL prefix (full URL or path such as /blog/) and to queries containing a text, with up to 500 results. URL inspection is live URL-level data from Search Console, not a historical snapshot, and Google does not expose the full Page Indexing report in bulk via API. GA4 events are captured per daily snapshot (top 50 by eventCount) — rare custom events with very low counts may not appear. AdSense data includes partial earnings for today, and estimated earnings for the last few days are still adjusted by Google; amounts are in the property currency.
 
+Change log: every site has annotations (content, technical, campaign, deploy). Call add-annotation whenever you publish or modify something on a site, with the day it went live. The trend tools (snapshots, sources, pages, events, search queries, AdSense, Bing; summary for the last 30 days) return the annotations of their range, so causes and effects come in one call; use list-annotations to check past changes before proposing an experiment.
+
 Bing Webmaster Tools: get-property-bing-search returns Bing queries or pages (weekly data, Friday to Thursday, so ranges are widened to whole weeks), get-property-bing-traffic returns daily clicks and impressions with the previous period and crawl health (pages in the Bing index, crawl errors, 4xx/5xx), and get-property-summary includes a Bing section. Bing feeds Copilot, DuckDuckGo and several AI search engines, so it doubles as a GEO signal. submit-urls-to-bing asks Bing to recrawl changed pages, within a small daily quota per site. Bing data lags about 3 days.
 
 Keyword research (Google Ads Keyword Planner): use get-keyword-ideas for ideas from seeds or a URL, get-keyword-metrics to check specific keywords with 12 monthly volumes, and get-keyword-gap to see which ideas the property already ranks for in Search Console (last 90 days) and which are missing. Use search-geo-targets to resolve a place (e.g. a province vs a city) to a geo target ID. Defaults are Italian and Italy. Volumes are Google approximations, results are cached for 30 days, and keyword output is columnar (cols + rows) to save tokens.')]
@@ -39,6 +43,8 @@ class PulsoServer extends Server
 {
     protected array $tools = [
         ListPropertiesTool::class,
+        AddAnnotationTool::class,
+        ListAnnotationsTool::class,
         GetPropertySnapshotsTool::class,
         GetPropertySourcesTool::class,
         GetPropertyPagesTool::class,

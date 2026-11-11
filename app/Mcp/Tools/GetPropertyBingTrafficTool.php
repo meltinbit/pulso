@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\IncludesAnnotations;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\GaProperty;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -18,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertyBingTrafficTool extends Tool
 {
-    use ResolvesMcpContext;
+    use IncludesAnnotations, ResolvesMcpContext;
 
     public function handle(Request $request): Response
     {
@@ -65,6 +66,7 @@ class GetPropertyBingTrafficTool extends Tool
             ],
             'weekly' => ['cols' => ['week_start', 'clicks', 'impressions'], 'rows' => $weekly],
             'crawl' => $this->crawl($property, $from, $to),
+            'annotations' => $this->annotationsBetween($property, $from, $to),
         ]));
     }
 

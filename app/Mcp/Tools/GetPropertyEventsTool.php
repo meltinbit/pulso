@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\IncludesAnnotations;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\PropertySnapshotEvent;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -17,7 +18,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertyEventsTool extends Tool
 {
-    use ResolvesMcpContext;
+    use IncludesAnnotations, ResolvesMcpContext;
 
     public function handle(Request $request): Response
     {
@@ -65,6 +66,7 @@ class GetPropertyEventsTool extends Tool
             'sorted_by' => $sortBy,
             'event_name_filter' => $eventName,
             'events' => $events,
+            'annotations' => $this->annotationsBetween($property, $from, $to),
         ];
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));

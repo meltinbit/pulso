@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\IncludesAnnotations;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\PropertyBingSearchStat;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -18,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertyBingSearchTool extends Tool
 {
-    use ResolvesMcpContext;
+    use IncludesAnnotations, ResolvesMcpContext;
 
     private const MAX_LIMIT = 500;
 
@@ -82,6 +83,7 @@ class GetPropertyBingSearchTool extends Tool
             'sorted_by' => $sortBy,
             'cols' => [$dimension, 'clicks', 'impressions', 'ctr', 'position'],
             'rows' => $rows,
+            'annotations' => $this->annotationsBetween($property, $from, $to),
         ]));
     }
 

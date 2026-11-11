@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\IncludesAnnotations;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\PropertySearchQuery;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -18,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertySearchQueriesTool extends Tool
 {
-    use ResolvesMcpContext;
+    use IncludesAnnotations, ResolvesMcpContext;
 
     /** Queries returned per call by default. */
     private const DEFAULT_LIMIT = 30;
@@ -88,6 +89,7 @@ class GetPropertySearchQueriesTool extends Tool
             ]),
             'count' => $queries->count(),
             'queries' => $queries,
+            'annotations' => $this->annotationsBetween($property, $from, $to),
         ];
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));

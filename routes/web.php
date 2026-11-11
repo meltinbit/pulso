@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdSenseController;
+use App\Http\Controllers\AnnotationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\KeywordController;
@@ -21,6 +22,8 @@ Route::get('privacy', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('mcp-log', [McpLogController::class, 'index'])->name('mcp-log.index');
+    Route::get('annotations', [AnnotationController::class, 'index'])->name('annotations.index');
+    Route::delete('annotations/{annotation}', [AnnotationController::class, 'destroy'])->name('annotations.destroy');
 
     Route::get('auth/google', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
     Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');

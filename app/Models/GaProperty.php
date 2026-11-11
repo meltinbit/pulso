@@ -84,4 +84,9 @@ class GaProperty extends Model
     {
         return $this->hasMany(PropertyBingCrawlStat::class);
     }
+
+    public function annotations(): HasMany
+    {
+        return $this->hasMany(PropertyAnnotation::class);
+    }
 }

@@ -62,10 +62,14 @@ Pulso diventa il connettore MCP unico con cui gli agenti di Jérôme fanno cresc
 
 ## Fase 2 – Registro modifiche
 
-- [ ] Tool `add_annotation`: data, sito, tipo (contenuto, tecnico, campagna, deploy), descrizione breve, URL coinvolti
-- [ ] Tool `list_annotations` per sito e intervallo di date
-- [ ] Annotazioni restituite insieme ai dati nei tool di trend (snapshot, pagine, query)
-- [ ] Scrittura automatica da parte degli agenti Jérôme quando pubblicano o modificano qualcosa
+*Completata l'11/11/2026, salvo l'ultimo punto che va fatto in Jérôme.*
+
+- [x] Tool `add_annotation`: data, sito, tipo (contenuto, tecnico, campagna, deploy), descrizione breve, URL coinvolti — *`add-annotation`: tipi `content`, `technical`, `campaign`, `deploy`; data di default oggi nel fuso della proprietà; i percorsi diventano URL completi; agente registrato da `?agent=`; un doppione restituisce la voce esistente*
+- [x] Tool `list_annotations` per sito e intervallo di date — *`list-annotations`, anche su tutti i siti, con filtri per tipo e testo (descrizione o URL)*
+- [x] Annotazioni restituite insieme ai dati nei tool di trend (snapshot, pagine, query) — *anche sorgenti, eventi, AdSense, Bing (ricerche e traffico); il summary riporta quelle degli ultimi 30 giorni*
+- [ ] Scrittura automatica da parte degli agenti Jérôme quando pubblicano o modificano qualcosa — *parziale: lato Pulso è pronto (istruzioni del server MCP e descrizione del tool chiedono di annotare ogni modifica pubblicata). Resta da aggiungere la regola nei prompt degli agenti Jérôme, fuori da questo repo*
+
+In più: pagina admin **Annotations** per controllare le voci e cancellare quelle sbagliate.
 
 ## Fase 3 – Ads in lettura (Google + Meta)
 

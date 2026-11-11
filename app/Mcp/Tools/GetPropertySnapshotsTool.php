@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\IncludesAnnotations;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -16,7 +17,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertySnapshotsTool extends Tool
 {
-    use ResolvesMcpContext;
+    use IncludesAnnotations, ResolvesMcpContext;
 
     public function handle(Request $request): Response
     {
@@ -65,6 +66,7 @@ class GetPropertySnapshotsTool extends Tool
             'to' => $to,
             'count' => $snapshots->count(),
             'snapshots' => $snapshots,
+            'annotations' => $this->annotationsBetween($property, $from, $to),
         ];
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));

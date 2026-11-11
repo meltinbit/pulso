@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\IncludesAnnotations;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Services\AdSenseReportService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -18,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertyAdSenseTool extends Tool
 {
-    use ResolvesMcpContext;
+    use IncludesAnnotations, ResolvesMcpContext;
 
     public function handle(Request $request, AdSenseReportService $reports): Response
     {
@@ -52,6 +53,7 @@ class GetPropertyAdSenseTool extends Tool
             'property' => $property->display_name,
             'website_url' => $property->website_url,
             ...$report,
+            'annotations' => $this->annotationsBetween($property, $from, $to),
         ], JSON_PRETTY_PRINT));
     }
 

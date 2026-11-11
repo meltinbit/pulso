@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Tools\Concerns\IncludesAnnotations;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\GaProperty;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -18,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent]
 class GetPropertySummaryTool extends Tool
 {
-    use ResolvesMcpContext;
+    use IncludesAnnotations, ResolvesMcpContext;
 
     public function handle(Request $request): Response
     {
@@ -110,6 +111,7 @@ class GetPropertySummaryTool extends Tool
             'trend_distribution_30d' => $last30->groupBy('trend')
                 ->map(fn ($group) => $group->count()),
             'anomalies' => $anomalies,
+            'annotations_30d' => $this->annotationsBetween($property, now()->subDays(30), now()),
             'top_sources_latest' => $latestSources,
             'top_search_queries' => $this->getLatestSearchQueries($property),
             'bing' => $this->bingSummary($property),

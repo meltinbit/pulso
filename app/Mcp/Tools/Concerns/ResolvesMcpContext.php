@@ -17,6 +17,17 @@ trait ResolvesMcpContext
         return $user;
     }
 
+    /**
+     * The agent calling the tool, named with ?agent= in the connector URL or
+     * the X-Pulso-Agent header.
+     */
+    protected function currentAgent(): ?string
+    {
+        $agent = request()->query('agent') ?: request()->header('X-Pulso-Agent');
+
+        return is_string($agent) && $agent !== '' ? mb_substr($agent, 0, 100) : null;
+    }
+
     protected function resolveAuthorizedProperty(int $propertyId): GaProperty
     {
         return $this->currentUser()->gaProperties()->findOrFail($propertyId);
