@@ -13,7 +13,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Google Ads search terms report: the real queries that triggered the ads, summed across ad groups, with cost, clicks, impressions, conversions, conversion value, CPA and whether the term is already a keyword (ADDED) or excluded. Includes a summary with the spend on terms that never converted. Use it to find negative keywords, new keywords and, for SEO, the queries that really convert. Performance Max terms are not included. Defaults to the last 30 complete days; output is columnar.')]
+#[Description('Google Ads search terms report: the real queries that triggered the ads, summed across ad groups, with cost, clicks, impressions, conversions, conversion value, CPA and whether the term is already a keyword (ADDED) or excluded. Includes a summary with the spend on terms that never converted. Use it to find negative keywords, new keywords and, for SEO, the queries that really convert. Pass site to keep only the ad groups whose ads land on that domain. Performance Max terms are not included. Defaults to the last 30 complete days; output is columnar.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetAdsSearchTermsTool extends Tool
@@ -27,6 +27,7 @@ class GetAdsSearchTermsTool extends Tool
         $validated = $request->validate([
             'customer_id' => 'nullable|string|max:20',
             'campaign_id' => 'nullable|string|max:20',
+            'site' => 'nullable|string|max:255',
             'from' => 'nullable|date',
             'to' => 'nullable|date|after_or_equal:from',
             'only_converting' => 'nullable|boolean',
@@ -40,7 +41,9 @@ class GetAdsSearchTermsTool extends Tool
 
         try {
             $customerId = $this->reports->resolveCustomerId($validated['customer_id'] ?? null);
-            $terms = collect($this->reports->searchTerms($customerId, $from, $to, $validated['campaign_id'] ?? null));
+            $site = GoogleAdsReportService::host($validated['site'] ?? null);
+            $adGroupIds = $site === null ? null : $this->reports->adGroupsForHost($customerId, $site);
+            $terms = collect($this->reports->searchTerms($customerId, $from, $to, $validated['campaign_id'] ?? null, $adGroupIds));
         } catch (GoogleAdsApiException $e) {
             return Response::error($e->getMessage());
         }
@@ -74,6 +77,7 @@ class GetAdsSearchTermsTool extends Tool
 
         return Response::text(json_encode([
             'customer_id' => $customerId,
+            'site' => $site,
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'summary' => $summary,
@@ -93,6 +97,8 @@ class GetAdsSearchTermsTool extends Tool
                 ->description('Google Ads account ID. Defaults to the configured account; see list-ads-accounts.'),
             'campaign_id' => $schema->string()
                 ->description('Only this campaign (ID from get-ads-campaigns).'),
+            'site' => $schema->string()
+                ->description('Only the ad groups whose ads land on this domain or its subdomains, e.g. calcolato.it. Useful when one account advertises several sites.'),
             'from' => $schema->string()
                 ->description('Start date (YYYY-MM-DD). Defaults to 30 days before "to".'),
             'to' => $schema->string()

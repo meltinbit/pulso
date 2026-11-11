@@ -114,23 +114,68 @@ it('finds converting paid terms without a strong organic page', function () {
         PropertySearchQuery::create(['ga_property_id' => $property->id, 'date' => '2026-10-20', 'query' => $query, 'page' => $page, 'clicks' => $clicks, 'impressions' => $impressions, 'ctr' => 1, 'position' => $position]);
     }
 
-    fakeGoogleAdsSearch(['search_term_view' => fn () => [
-        ['searchTermView' => ['searchTerm' => 'Calcolo Forfettario', 'status' => 'NONE'], 'metrics' => adsMetrics(30, 40, 200, 6)],
-        ['searchTermView' => ['searchTerm' => 'regime forfettario', 'status' => 'NONE'], 'metrics' => adsMetrics(10, 10, 90, 2)],
-        ['searchTermView' => ['searchTerm' => 'partita iva forfettaria quanto costa', 'status' => 'NONE'], 'metrics' => adsMetrics(12, 8, 60, 3)],
-        ['searchTermView' => ['searchTerm' => 'forfettario gratis', 'status' => 'NONE'], 'metrics' => adsMetrics(9, 9, 90, 0)],
-    ]]);
+    fakeGoogleAdsSearch([
+        'ad_group_ad' => fn () => [
+            ['adGroup' => ['id' => '11'], 'adGroupAd' => ['ad' => ['finalUrls' => ['https://www.example.com/forfettario/']]]],
+            ['adGroup' => ['id' => '12'], 'adGroupAd' => ['ad' => ['finalUrls' => ['https://app.example.com/']]]],
+            ['adGroup' => ['id' => '22'], 'adGroupAd' => ['ad' => ['finalUrls' => ['https://notexample.com/']]]],
+        ],
+        'search_term_view' => fn (string $query) => array_merge([
+            ['searchTermView' => ['searchTerm' => 'Calcolo Forfettario', 'status' => 'NONE'], 'metrics' => adsMetrics(30, 40, 200, 6)],
+            ['searchTermView' => ['searchTerm' => 'regime forfettario', 'status' => 'NONE'], 'metrics' => adsMetrics(10, 10, 90, 2)],
+            ['searchTermView' => ['searchTerm' => 'partita iva forfettaria quanto costa', 'status' => 'NONE'], 'metrics' => adsMetrics(12, 8, 60, 3)],
+            ['searchTermView' => ['searchTerm' => 'forfettario gratis', 'status' => 'NONE'], 'metrics' => adsMetrics(9, 9, 90, 0)],
+        ], str_contains($query, 'ad_group.id IN') ? [] : [
+            ['searchTermView' => ['searchTerm' => 'altro sito', 'status' => 'NONE'], 'metrics' => adsMetrics(5, 5, 50, 4)],
+        ]),
+    ]);
 
     PulsoServer::tool(GetPaidOrganicGapTool::class, ['property_id' => $property->id])
         ->assertOk()
         ->assertSee('"summary":{"converting_terms":3,"missing":1,"weak":1,"conversions_without_strong_page":9}')
         ->assertSee('["Calcolo Forfettario","weak",6,30,5,300,30,14,"https:\/\/example.com\/forfettario\/"]')
         ->assertSee('["partita iva forfettaria quanto costa","missing",3,12,4,0,0,null,null]')
+        ->assertSee('"site":"example.com","ad_groups_on_site":2')
         ->assertDontSee('regime forfettario')
+        ->assertDontSee('altro sito')
         ->assertDontSee('gratis');
+
+    Http::assertSent(fn (Request $request): bool => str_contains((string) ($request->data()['query'] ?? ''), 'ad_group.id IN (11, 12)'));
+
+    PulsoServer::tool(GetPaidOrganicGapTool::class, ['property_id' => $property->id, 'all_sites' => true])
+        ->assertSee('"site":"all"')
+        ->assertSee('"altro sito","missing",4');
 
     PulsoServer::tool(GetPaidOrganicGapTool::class, ['property_id' => $property->id, 'include_strong' => true])
         ->assertSee('"regime forfettario","strong"');
+});
+
+it('needs a website url to tie ads to the property', function () {
+    $property = GaProperty::factory()->for($this->user)->create(['website_url' => null]);
+
+    PulsoServer::tool(GetPaidOrganicGapTool::class, ['property_id' => $property->id])
+        ->assertHasErrors(['all_sites=true']);
+});
+
+it('filters search terms by landing site', function () {
+    fakeGoogleAdsSearch([
+        'ad_group_ad' => fn () => [['adGroup' => ['id' => '22'], 'adGroupAd' => ['ad' => ['finalUrls' => ['https://other.com/']]]]],
+        'search_term_view' => fn () => [['searchTermView' => ['searchTerm' => 'other term', 'status' => 'NONE'], 'metrics' => adsMetrics(5, 5, 50, 1)]],
+    ]);
+
+    PulsoServer::tool(GetAdsSearchTermsTool::class, ['site' => 'https://www.example.com/'])
+        ->assertOk()
+        ->assertSee('"site":"example.com"')
+        ->assertSee('"terms":0')
+        ->assertDontSee('other term');
+});
+
+it('reads the account currency when there are no campaigns', function () {
+    fakeGoogleAdsSearch(['customer' => fn () => [['customer' => ['currencyCode' => 'EUR']]]]);
+
+    PulsoServer::tool(GetAdsCampaignsTool::class, [])
+        ->assertOk()
+        ->assertSee('"currency":"EUR"');
 });
 
 it('returns readable errors from google ads', function () {

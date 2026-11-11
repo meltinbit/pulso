@@ -82,6 +82,8 @@ Con le stesse credenziali Pulso legge le campagne degli account sotto l'MCC (GAQ
 | `list-ads-accounts` | Account sotto l'MCC: ID, nome, manager sì/no, stato, valuta. |
 | `get-ads-campaigns` | Per campagna: costo, clic, impressioni, conversioni, valore, CTR, CPC, CPA, ROAS; totali e variazione sul periodo precedente. Default: ultimi 30 giorni completi. |
 | `get-ads-search-terms` | Termini di ricerca sommati sui gruppi di annunci, con stato (aggiunto/escluso), filtri e la spesa senza conversioni. Le campagne Performance Max non sono incluse (Google le espone in un'altra vista). |
-| `get-paid-organic-gap` | Termini a pagamento che convertono, confrontati con Search Console della property: `missing` (nessuna pagina organica), `weak` (posizione oltre la soglia, default 10), `strong` (solo con `include_strong`). Default: ultimi 90 giorni. |
+| `get-paid-organic-gap` | Termini a pagamento che convertono, confrontati con Search Console della property: `missing` (nessuna pagina organica), `weak` (posizione oltre la soglia, default 10), `strong` (solo con `include_strong`). Default: ultimi 90 giorni. Usa solo i gruppi di annunci i cui annunci portano al dominio della property (o a un suo sottodominio), così le campagne di altri siti sullo stesso account non si mescolano; `all_sites=true` toglie il filtro. |
 
 `customer_id` è opzionale: senza, si usa `GOOGLE_ADS_CUSTOMER_ID`.
+
+Google non permette di leggere i termini di ricerca insieme alla pagina di destinazione: Pulso ricava il sito dagli URL finali degli annunci di ogni gruppo. Gli URL finali impostati sulle singole keyword non sono considerati.

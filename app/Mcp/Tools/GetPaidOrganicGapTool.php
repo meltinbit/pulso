@@ -19,7 +19,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Paid vs organic: the Google Ads search terms that convert, matched with the property\'s Search Console data for the same period (exact query, case and accent insensitive). Each term is marked missing (no organic impressions), weak (average position worse than position_threshold) or strong, with organic clicks, impressions, position and best landing page. By default only missing and weak terms are returned: they are the SEO pages worth creating or improving, because they are proven to convert. Defaults to the last 90 complete days; output is columnar, sorted by conversions.')]
+#[Description('Paid vs organic: the Google Ads search terms that convert, limited to the ad groups whose ads land on the property\'s domain (or its subdomains), matched with the property\'s Search Console data for the same period (exact query, case and accent insensitive). Each term is marked missing (no organic impressions), weak (average position worse than position_threshold) or strong, with organic clicks, impressions, position and best landing page. By default only missing and weak terms are returned: they are the SEO pages worth creating or improving, because they are proven to convert. Defaults to the last 90 complete days; output is columnar, sorted by conversions.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class GetPaidOrganicGapTool extends Tool
@@ -38,6 +38,8 @@ class GetPaidOrganicGapTool extends Tool
             'min_conversions' => 'nullable|numeric|min:0',
             'position_threshold' => 'nullable|numeric|min:1|max:100',
             'include_strong' => 'nullable|boolean',
+            'campaign_id' => 'nullable|string|max:20',
+            'all_sites' => 'nullable|boolean',
             'limit' => 'nullable|integer|min:1|max:500',
         ]);
 
@@ -46,9 +48,17 @@ class GetPaidOrganicGapTool extends Tool
         $minConversions = (float) ($validated['min_conversions'] ?? 0);
         $threshold = (float) ($validated['position_threshold'] ?? 10);
 
+        $allSites = (bool) ($validated['all_sites'] ?? false);
+        $host = GoogleAdsReportService::host($property->website_url);
+
+        if (! $allSites && $host === null) {
+            return Response::error("La property {$property->display_name} non ha un website_url: non so quali annunci portano al sito. Impostalo o passa all_sites=true.");
+        }
+
         try {
             $customerId = $this->reports->resolveCustomerId($validated['customer_id'] ?? null);
-            $terms = collect($this->reports->searchTerms($customerId, $from, $to))
+            $adGroupIds = $allSites ? null : $this->reports->adGroupsForHost($customerId, $host);
+            $terms = collect($this->reports->searchTerms($customerId, $from, $to, $validated['campaign_id'] ?? null, $adGroupIds))
                 ->filter(fn (array $term): bool => $minConversions > 0 ? $term['conversions'] >= $minConversions : $term['conversions'] > 0);
         } catch (GoogleAdsApiException $e) {
             return Response::error($e->getMessage());
@@ -77,6 +87,8 @@ class GetPaidOrganicGapTool extends Tool
         return Response::text(json_encode([
             'property' => $property->display_name,
             'customer_id' => $customerId,
+            'site' => $allSites ? 'all' : $host,
+            'ad_groups_on_site' => $adGroupIds === null ? null : count($adGroupIds),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'summary' => [
@@ -173,6 +185,10 @@ class GetPaidOrganicGapTool extends Tool
                 ->description('Average organic position above which a page counts as weak. Defaults to 10 (first page).'),
             'include_strong' => $schema->boolean()
                 ->description('Also return terms where the site already ranks well. Defaults to false.'),
+            'campaign_id' => $schema->string()
+                ->description('Only the search terms of this campaign.'),
+            'all_sites' => $schema->boolean()
+                ->description('Use every search term of the account, whatever site the ads land on. Defaults to false: only ad groups with ads on the property domain.'),
             'limit' => $schema->integer()
                 ->description('Rows to return. Defaults to 100, maximum 500.'),
         ];

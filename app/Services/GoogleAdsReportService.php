@@ -55,7 +55,7 @@ class GoogleAdsReportService
         ));
 
         return [
-            'currency' => $rows[0]['customer']['currencyCode'] ?? null,
+            'currency' => $rows[0]['customer']['currencyCode'] ?? $this->currency($customerId),
             'campaigns' => array_values(array_map(fn (array $row): array => [
                 'id' => (string) ($row['campaign']['id'] ?? ''),
                 'name' => (string) ($row['campaign']['name'] ?? ''),
@@ -69,15 +69,33 @@ class GoogleAdsReportService
      * Search terms over a date range, summed across ad groups. Performance
      * Max terms are not included (Google keeps them in a separate view).
      *
+     * Pass $adGroupIds (see adGroupsForHost) to keep only the terms of
+     * those ad groups; an empty list means no terms.
+     *
+     * @param  list<string>|null  $adGroupIds
      * @return list<array{term: string, status: string, cost: float, clicks: int, impressions: int, conversions: float, conversion_value: float}>
      */
-    public function searchTerms(string $customerId, Carbon $from, Carbon $to, ?string $campaignId = null): array
+    public function searchTerms(string $customerId, Carbon $from, Carbon $to, ?string $campaignId = null, ?array $adGroupIds = null): array
     {
+        if ($adGroupIds === []) {
+            return [];
+        }
+
+        $filters = '';
+
+        if ($campaignId) {
+            $filters .= ' AND campaign.id = '.preg_replace('/\D/', '', $campaignId);
+        }
+
+        if ($adGroupIds !== null) {
+            $filters .= ' AND ad_group.id IN ('.implode(', ', array_map(fn (string $id): string => preg_replace('/\D/', '', $id), $adGroupIds)).')';
+        }
+
         $rows = $this->search($customerId, sprintf(
             "SELECT search_term_view.search_term, search_term_view.status, metrics.cost_micros, metrics.clicks, metrics.impressions, metrics.conversions, metrics.conversions_value FROM search_term_view WHERE segments.date BETWEEN '%s' AND '%s' AND metrics.impressions > 0%s ORDER BY metrics.impressions DESC LIMIT %d",
             $from->toDateString(),
             $to->toDateString(),
-            $campaignId ? ' AND campaign.id = '.preg_replace('/\D/', '', $campaignId) : '',
+            $filters,
             self::MAX_ROWS,
         ));
 
@@ -104,6 +122,64 @@ class GoogleAdsReportService
         }
 
         return array_values($terms);
+    }
+
+    /**
+     * Ad groups with at least one ad (not removed) whose final URL is on the
+     * given host or one of its subdomains. Search terms cannot be selected
+     * with the landing page, so this is how they are tied to a site.
+     *
+     * @return list<string>
+     */
+    public function adGroupsForHost(string $customerId, string $host): array
+    {
+        $rows = $this->search($customerId, "SELECT ad_group.id, ad_group_ad.ad.final_urls FROM ad_group_ad WHERE ad_group_ad.status != 'REMOVED'");
+
+        return collect($rows)
+            ->filter(fn (array $row): bool => collect($row['adGroupAd']['ad']['finalUrls'] ?? [])
+                ->contains(fn (string $url): bool => self::onHost($url, $host)))
+            ->map(fn (array $row): string => (string) ($row['adGroup']['id'] ?? ''))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Lowercase host without "www.", or null when the URL has none.
+     */
+    public static function host(?string $url): ?string
+    {
+        $url = trim((string) $url);
+
+        if ($url === '') {
+            return null;
+        }
+
+        $host = parse_url(str_contains($url, '://') ? $url : 'https://'.$url, PHP_URL_HOST);
+
+        if (! is_string($host) || $host === '') {
+            return null;
+        }
+
+        $host = strtolower($host);
+
+        return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+    }
+
+    private static function onHost(string $url, string $host): bool
+    {
+        $urlHost = self::host($url);
+
+        return $urlHost !== null && ($urlHost === $host || str_ends_with($urlHost, '.'.$host));
+    }
+
+    /**
+     * Account currency, for reports without rows.
+     */
+    private function currency(string $customerId): ?string
+    {
+        return $this->search($customerId, 'SELECT customer.currency_code FROM customer LIMIT 1')[0]['customer']['currencyCode'] ?? null;
     }
 
     /**
