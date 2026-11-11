@@ -5,7 +5,7 @@
 - Fase 4, crawler AI: calcolato.it collegato e verificato in produzione (11/11, 67 visite il primo giorno); deve aggiungere `'ip' => $request->ip()` al middleware perché Pulso verifichi gli IP (trustProxies è già `*`). Da collegare anche meltinbit.com: Astro 6 con adapter node standalone ma pagine prerenderizzate, quindi serve un piccolo server Node davanti all'handler (11/11).
 - Produzione: togliere GOOGLE_ADS_DEVELOPER_TOKEN dal .env di Coolify (non serve più) (11/11).
 - Jérôme: aggiungere ai prompt degli agenti la regola "chiama add-annotation di Pulso ogni volta che pubblichi o modifichi qualcosa su un sito" e il parametro &agent= negli URL dei connettori (11/11).
-- Deploy: le migration add_bing_tables, drop_funnel_tables e create_property_annotations, create_ai_visibility_tables, create_ai_crawler_visits_table e add_verification_to_ai_crawler_visits_table vanno in produzione al prossimo deploy; drop_plan_fields e create_mcp_call_logs sono già applicate sul DB condiviso (11/11).
+- Deploy: add_verification_to_ai_crawler_visits_table va in produzione al prossimo deploy, insieme al codice che la usa (le migration precedenti sono già applicate: i crawler di calcolato.it arrivano in produzione) (11/11).
 
 ## Parked
 - P1: Fase 5 (Ads in scrittura con guardrail) rimandata da Fabio: oggi non ci sono campagne Google né Meta; prima di riprenderla serve decidere il meccanismo di approvazione via Telegram (bot di Jérôme o Pulso) (11/11).
