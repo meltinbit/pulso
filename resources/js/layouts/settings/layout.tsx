@@ -37,6 +37,11 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
     {
+        title: 'AI visibility',
+        url: '/settings/ai-visibility',
+        icon: null,
+    },
+    {
         title: 'MCP',
         url: '/settings/mcp',
         icon: null,

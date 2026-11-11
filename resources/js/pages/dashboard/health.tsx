@@ -21,6 +21,7 @@ interface Health {
     }[];
     bing: { has_key: boolean; key_invalid: boolean; issue: string | null };
     meta: { has_token: boolean; token_invalid: boolean; issue: string | null };
+    ai_visibility: { has_key: boolean; spent_month_usd: number; cap_eur: number; issue: string | null };
     google_ads: { configured: boolean; missing: string[]; operations_today: number; daily_limit: number };
     mcp: { has_token: boolean; last_used_at: string | null; calls_24h: number; errors_24h: number };
     failed_jobs: { count_7d: number; latest: { job: string; failed_at: string; error: string } | null };
@@ -93,6 +94,14 @@ export default function HealthPage({ health }: { health: Health }) {
                                 {health.meta.issue}{' '}
                                 <Link href="/settings/meta" className="underline">
                                     Open Meta settings
+                                </Link>
+                            </Issue>
+                        )}
+                        {health.ai_visibility.issue && (
+                            <Issue>
+                                {health.ai_visibility.issue}{' '}
+                                <Link href="/settings/ai-visibility" className="underline">
+                                    Open AI visibility settings
                                 </Link>
                             </Issue>
                         )}
@@ -186,6 +195,12 @@ export default function HealthPage({ health }: { health: Health }) {
                             ) : (
                                 <>
                                     <p>Last used: {mcp.last_used_at ?? 'never'}</p>
+                                    {health.ai_visibility.has_key && (
+                                        <p>
+                                            AI visibility: ${health.ai_visibility.spent_month_usd.toFixed(2)} of{' '}
+                                            {health.ai_visibility.cap_eur.toFixed(2)} € this month
+                                        </p>
+                                    )}
                                     <p>
                                         {mcp.calls_24h} calls in 24 h, {mcp.errors_24h} errors ·{' '}
                                         <Link href="/mcp-log" className="underline">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\AiVisibilitySettingsController;
 use App\Http\Controllers\Settings\BingSettingsController;
 use App\Http\Controllers\Settings\GoogleSettingsController;
 use App\Http\Controllers\Settings\McpSettingsController;
@@ -36,6 +37,10 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/meta', [MetaSettingsController::class, 'edit'])->name('settings.meta');
     Route::put('settings/meta', [MetaSettingsController::class, 'update'])->name('settings.meta.update');
     Route::put('settings/meta/account', [MetaSettingsController::class, 'updateDefaultAccount'])->name('settings.meta.account');
+
+    Route::get('settings/ai-visibility', [AiVisibilitySettingsController::class, 'edit'])->name('settings.ai-visibility');
+    Route::put('settings/ai-visibility', [AiVisibilitySettingsController::class, 'update'])->name('settings.ai-visibility.update');
+    Route::post('settings/ai-visibility/run', [AiVisibilitySettingsController::class, 'run'])->name('settings.ai-visibility.run');
 
     Route::get('settings/mcp', [McpSettingsController::class, 'edit'])->name('settings.mcp');
     Route::post('settings/mcp', [McpSettingsController::class, 'store'])->name('settings.mcp.store');

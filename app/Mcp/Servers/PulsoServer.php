@@ -5,6 +5,7 @@ namespace App\Mcp\Servers;
 use App\Mcp\Tools\AddAnnotationTool;
 use App\Mcp\Tools\GetAdsCampaignsTool;
 use App\Mcp\Tools\GetAdsSearchTermsTool;
+use App\Mcp\Tools\GetAiVisibilityTool;
 use App\Mcp\Tools\GetKeywordGapTool;
 use App\Mcp\Tools\GetKeywordIdeasTool;
 use App\Mcp\Tools\GetKeywordMetricsTool;
@@ -28,6 +29,7 @@ use App\Mcp\Tools\ListAnnotationsTool;
 use App\Mcp\Tools\ListMetaAdAccountsTool;
 use App\Mcp\Tools\ListPropertiesTool;
 use App\Mcp\Tools\SearchGeoTargetsTool;
+use App\Mcp\Tools\SetAiVisibilityPromptsTool;
 use App\Mcp\Tools\SubmitUrlsToBingTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
@@ -50,7 +52,9 @@ Keyword research (Google Ads Keyword Planner): use get-keyword-ideas for ideas f
 
 Google Ads (read only): list-ads-accounts lists the accounts, get-ads-campaigns returns campaign cost, conversions, CPA and ROAS with the previous period, get-ads-search-terms returns the real queries behind the ads (spend without conversions included, Performance Max excluded), and get-paid-organic-gap crosses the converting search terms with Search Console to find queries that convert in Ads but have no strong organic page (only ad groups landing on the property domain; get-ads-search-terms takes the same filter as site). Ads tools default to complete days (up to yesterday) and amounts are in the account currency.
 
-Meta Ads, Facebook and Instagram (read only): list-meta-ad-accounts lists the ad accounts, get-meta-campaigns returns campaign cost, reach, frequency, link clicks, conversions, CPA and ROAS with the previous period, get-meta-ads compares ads or ad sets, and get-meta-breakdown splits results by age, gender, country, region, placement or device. Conversions are one Meta action type: the tools pick the most meaningful one the account has (purchase, registration, lead, app install...) and say which; pass conversion_action to choose another from available_actions. Same field names as the Google Ads tools, so the two platforms can be compared directly.')]
+Meta Ads, Facebook and Instagram (read only): list-meta-ad-accounts lists the ad accounts, get-meta-campaigns returns campaign cost, reach, frequency, link clicks, conversions, CPA and ROAS with the previous period, get-meta-ads compares ads or ad sets, and get-meta-breakdown splits results by age, gender, country, region, placement or device. Conversions are one Meta action type: the tools pick the most meaningful one the account has (purchase, registration, lead, app install...) and say which; pass conversion_action to choose another from available_actions. Same field names as the Google Ads tools, so the two platforms can be compared directly.
+
+GEO, visibility in AI answers: set-ai-visibility-prompts manages the questions tracked for a site (10-20 focused prompts, as a user would ask them, in the site language) and the brand terms that count as a mention; Pulso asks them weekly to ChatGPT (OpenAI API with web search) within a monthly budget cap. get-ai-visibility returns the share of answers citing the site over time, which prompts were gained or lost since the previous run, the cited pages and the competitor domains cited instead. Use it to choose which pages to create or improve, then record the change with add-annotation.')]
 class PulsoServer extends Server
 {
     protected array $tools = [
@@ -81,5 +85,7 @@ class PulsoServer extends Server
         GetMetaCampaignsTool::class,
         GetMetaAdsTool::class,
         GetMetaBreakdownTool::class,
+        SetAiVisibilityPromptsTool::class,
+        GetAiVisibilityTool::class,
     ];
 }

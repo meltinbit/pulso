@@ -41,6 +41,22 @@ return [
         'redirect' => '',
     ],
 
+    'openai' => [
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'default_model' => env('AI_VISIBILITY_MODEL', 'gpt-5.6-luna'),
+        'reasoning_effort' => env('AI_VISIBILITY_REASONING_EFFORT', 'low'),
+        'country' => env('AI_VISIBILITY_COUNTRY', 'IT'),
+        // Used for models without a price below: deliberately high, so the budget cap errs on the safe side.
+        'fallback_price' => ['input' => 2.00, 'output' => 10.00],
+        // USD per web search call and per million tokens, from the OpenAI pricing page (11/2026).
+        'web_search_price' => 0.01,
+        'prices' => [
+            'gpt-5.6-luna' => ['input' => 0.20, 'output' => 1.20],
+            'gpt-5-mini' => ['input' => 0.25, 'output' => 2.00],
+            'gpt-5-nano' => ['input' => 0.05, 'output' => 0.40],
+        ],
+    ],
+
     'meta_ads' => [
         'api_version' => env('META_ADS_API_VERSION', 'v27.0'),
     ],

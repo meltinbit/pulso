@@ -273,6 +273,8 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `get-paid-organic-gap` | Paid search terms that convert but have no strong organic page in Search Console |
 | `list-meta-ad-accounts` / `get-meta-campaigns` | Meta (Facebook/Instagram) ad accounts and campaign performance with reach, frequency, CPA/ROAS and the previous period |
 | `get-meta-ads` / `get-meta-breakdown` | Meta ads or ad sets compared, and results by age, gender, country, region, placement or device |
+| `set-ai-visibility-prompts` | Manage the GEO prompts tracked per site and the brand terms that count as a mention |
+| `get-ai-visibility` | Share of ChatGPT answers citing the site over time, prompts gained or lost, cited pages, competitor domains |
 
 All tools support date ranges (`from`/`to`) for trend analysis over time where applicable. Trend tools also return the annotations of their range, so causes and effects come in one call; the **Annotations** page lists them and lets you delete wrong ones.
 
@@ -311,6 +313,12 @@ Read-only access through the Marketing API (version in `META_ADS_API_VERSION`, d
 4. Save it in **Settings > Meta**: Pulso checks it, lists the ad accounts and lets you choose the default one used by the MCP tools.
 
 If the token stops working the Health page says so. Conversions are one Meta action type (purchase, registration, lead, app install...): the tools pick the most meaningful one the account has and the agent can pass `conversion_action` to choose another.
+
+### AI visibility (GEO)
+
+Pulso asks the tracked prompts to ChatGPT through the OpenAI Responses API with web search (country from `AI_VISIBILITY_COUNTRY`, default `IT`) and records whether each answer cites the site, at which position among the cited sites, and which competitors are cited instead. The agents choose the prompts with `set-ai-visibility-prompts`.
+
+In **Settings > AI visibility** save an OpenAI API key and choose the model (default `gpt-5.6-luna`, about 1.2 cents per question, mostly the web search fee), the monthly cap in euro (default 3 €) and the frequency (weekly on Monday at 07:00, every two weeks, or off). Before each question Pulso checks what the month has already cost and stops before the cap, counting dollars as euro so the cap is never exceeded; a Telegram message says when it happens. Prices per model are in `config/services.php`. Run by hand with `php artisan pulso:ai-visibility --force`.
 
 ## Testing
 

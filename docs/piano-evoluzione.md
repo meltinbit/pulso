@@ -89,9 +89,9 @@ In più: pagina admin **Annotations** per controllare le voci e cancellare quell
 
 **Prompt tracking**
 
-- [ ] Set di prompt per prodotto salvato in Pulso
-- [ ] Job periodico che interroga i modelli via API e salva snapshot: citato sì/no, posizione, URL citato, concorrenti nominati — *coda (database, 3 worker) e scheduler già configurati; nessuna API di modelli AI usata oggi*
-- [ ] Tool `get_ai_visibility` con trend e differenze rispetto allo snapshot precedente
+- [x] Set di prompt per prodotto salvato in Pulso — *tabella ai_visibility_prompts, gestita dagli agenti con `set-ai-visibility-prompts` (max 30 attivi per sito, più i termini di brand)*
+- [x] Job periodico che interroga i modelli via API e salva snapshot: citato sì/no, posizione, URL citato, concorrenti nominati — *solo ChatGPT (OpenAI Responses API con ricerca web, modello gpt-5.6-luna), ogni lunedì alle 07:00, tetto di 3 €/mese; modello, tetto e frequenza in Impostazioni → AI visibility. I concorrenti sono i domini citati*
+- [x] Tool `get_ai_visibility` con trend e differenze rispetto allo snapshot precedente — *`get-ai-visibility`: quota di risposte che citano il sito per giro, prompt guadagnati/persi, pagina citata, domini concorrenti*
 
 **Crawler AI**
 

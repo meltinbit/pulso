@@ -9,3 +9,5 @@
 - Q: Tabelle funnels/funnel_steps inutilizzate — done 2026-11-11: eliminate con la migration drop_funnel_tables, insieme a modelli e factory.
 - Q: Revisione della Fase 1 — done 2026-11-11: approvata da Fabio ("vai"), Fase 2 avviata.
 - Q: Revisione della Fase 2 — done 2026-11-11: approvata da Fabio ("vai"), push di 6c28a92 e Fase 3 avviata.
+- Q: Collegamento Meta Ads — done 2026-11-11: app Pulso e utente di sistema nel portfolio MeltinBit, account 36152992 reclamato, token ads_read salvato in Pulso; i tool rispondono (account senza spesa nel 2026).
+- Q: Revisione della Fase 3 — done 2026-11-11: Google e Meta provati da Fabio con gli account reali (connessioni ok, nessuna campagna nel 2026), Fase 4 avviata.

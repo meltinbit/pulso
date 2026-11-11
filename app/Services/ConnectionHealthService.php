@@ -31,6 +31,7 @@ class ConnectionHealthService
     public function __construct(
         private SettingService $settings,
         private GoogleAdsClient $googleAds,
+        private AiVisibilityService $aiVisibility,
     ) {}
 
     /**
@@ -39,6 +40,7 @@ class ConnectionHealthService
      *     properties: list<array{id: int, name: string, website_url: ?string, last_snapshot: ?string, last_search_console: ?string, last_adsense: ?string, last_bing: ?string, issues: list<string>}>,
      *     bing: array{has_key: bool, key_invalid: bool, issue: ?string},
      *     meta: array{has_token: bool, token_invalid: bool, issue: ?string},
+     *     ai_visibility: array{has_key: bool, spent_month_usd: float, cap_eur: float, issue: ?string},
      *     google_ads: array{configured: bool, missing: list<string>, operations_today: int, daily_limit: int},
      *     mcp: array{has_token: bool, last_used_at: ?string, calls_24h: int, errors_24h: int},
      *     failed_jobs: array{count_7d: int, latest: ?array{job: string, failed_at: string, error: string}},
@@ -49,6 +51,7 @@ class ConnectionHealthService
     {
         $bing = $this->bing($user);
         $meta = $this->meta($user);
+        $aiVisibility = $this->aiVisibility($user);
 
         $connections = $user->gaConnections()->orderBy('google_email')->get()
             ->map(fn (GaConnection $connection): array => $this->connection($connection))
@@ -79,6 +82,7 @@ class ConnectionHealthService
         $issuesCount = collect($connections)->whereNotNull('issue')->count()
             + ($bing['issue'] === null ? 0 : 1)
             + ($meta['issue'] === null ? 0 : 1)
+            + ($aiVisibility['issue'] === null ? 0 : 1)
             + collect($properties)->sum(fn (array $property): int => count($property['issues']))
             + ($googleAds['configured'] ? 0 : 1)
             + ($googleAds['operations_today'] >= $googleAds['daily_limit'] ? 1 : 0)
@@ -89,6 +93,7 @@ class ConnectionHealthService
             'properties' => $properties,
             'bing' => $bing,
             'meta' => $meta,
+            'ai_visibility' => $aiVisibility,
             'google_ads' => $googleAds,
             'mcp' => $this->mcp($user),
             'failed_jobs' => $failedJobs,
@@ -184,6 +189,25 @@ class ConnectionHealthService
                 $invalid => 'La API key Bing non è più valida: generane una nuova e salvala in Impostazioni → Bing.',
                 default => null,
             },
+        ];
+    }
+
+    /**
+     * Only an invalid key is an issue: without a key prompt tracking is
+     * simply off, and a reached cap is the cap doing its job.
+     *
+     * @return array{has_key: bool, spent_month_usd: float, cap_eur: float, issue: ?string}
+     */
+    private function aiVisibility(User $user): array
+    {
+        $hasKey = $this->aiVisibility->apiKey($user) !== null;
+        $invalid = $hasKey && $this->settings->get($user->id, AiVisibilityService::KEY_INVALID_SETTING) === '1';
+
+        return [
+            'has_key' => $hasKey,
+            'spent_month_usd' => $hasKey ? $this->aiVisibility->spentThisMonthUsd($user) : 0.0,
+            'cap_eur' => $this->aiVisibility->monthlyCapEur($user),
+            'issue' => $invalid ? 'La API key OpenAI della AI visibility non è valida o il credito è finito: controlla in Impostazioni → AI visibility.' : null,
         ];
     }
 

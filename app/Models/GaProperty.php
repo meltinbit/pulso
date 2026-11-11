@@ -20,6 +20,7 @@ class GaProperty extends Model
         'display_name',
         'website_url',
         'bing_site_url',
+        'ai_brand_terms',
         'timezone',
         'currency',
         'is_active',
@@ -31,6 +32,7 @@ class GaProperty extends Model
         return [
             'is_active' => 'boolean',
             'meta' => 'array',
+            'ai_brand_terms' => 'array',
         ];
     }
 
@@ -88,5 +90,15 @@ class GaProperty extends Model
     public function annotations(): HasMany
     {
         return $this->hasMany(PropertyAnnotation::class);
+    }
+
+    public function aiVisibilityPrompts(): HasMany
+    {
+        return $this->hasMany(AiVisibilityPrompt::class);
+    }
+
+    public function aiVisibilityChecks(): HasMany
+    {
+        return $this->hasMany(AiVisibilityCheck::class);
     }
 }

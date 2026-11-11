@@ -84,6 +84,35 @@ class TelegramNotificationService
         return true;
     }
 
+    public function sendAiVisibilityBudgetAlert(int $userId, float $spentUsd, float $capEur): bool
+    {
+        $token = $this->settings->get($userId, 'telegram_bot_token');
+        $chatId = $this->settings->get($userId, 'telegram_chat_id');
+
+        if (! $token || ! $chatId) {
+            Log::warning('Telegram credentials not configured for user '.$userId.', skipping AI visibility budget alert.');
+
+            return false;
+        }
+
+        $message = implode("\n", [
+            "\xE2\x9A\xA0\xEF\xB8\x8F Pulso \xE2\x80\x94 AI visibility budget reached",
+            '',
+            sprintf('This month the ChatGPT checks cost $%.2f out of a %.2f € cap.', $spentUsd, $capEur),
+            'The remaining prompts are skipped until next month. Raise the cap or remove prompts in Pulso under Settings > AI visibility.',
+        ]);
+
+        $response = $this->sendMessage($token, $chatId, $message);
+
+        if (! $response->successful()) {
+            Log::warning('Failed to send AI visibility budget alert: '.$response->body());
+
+            return false;
+        }
+
+        return true;
+    }
+
     public function sendBingApiKeyAlert(int $userId): bool
     {
         $token = $this->settings->get($userId, 'telegram_bot_token');
