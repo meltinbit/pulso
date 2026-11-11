@@ -274,7 +274,7 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `list-meta-ad-accounts` / `get-meta-campaigns` | Meta (Facebook/Instagram) ad accounts and campaign performance with reach, frequency, CPA/ROAS and the previous period |
 | `get-meta-ads` / `get-meta-breakdown` | Meta ads or ad sets compared, and results by age, gender, country, region, placement or device |
 | `set-ai-visibility-prompts` | Manage the GEO prompts tracked per site and the brand terms that count as a mention |
-| `get-ai-visibility` | Share of ChatGPT answers citing the site over time, prompts gained or lost, cited pages, competitor domains |
+| `get-ai-visibility` | Share of ChatGPT answers citing the site over time, prompts gained or lost, cited pages, competitor domains, closest Bing query per prompt and Bing trend |
 | `get-ai-crawlers` | AI crawler visits reported by the site: per bot (training, search, user), per page, errors, new content not visited yet |
 
 All tools support date ranges (`from`/`to`) for trend analysis over time where applicable. Trend tools also return the annotations of their range, so causes and effects come in one call; the **Annotations** page lists them and lets you delete wrong ones.

@@ -100,7 +100,7 @@ In più: pagina admin **Annotations** per controllare le voci e cancellare quell
 
 **Bing come segnale GEO**
 
-- [ ] Usare i dati Bing anche in chiave AI — *dipende da Bing (Fase 1)*
+- [x] Usare i dati Bing anche in chiave AI — *in `get-ai-visibility` ogni prompt ha la query Bing più vicina (ultime 12 settimane) con impressioni e posizione del sito, più il trend Bing degli ultimi 28 giorni; le descrizioni dei tool Bing lo indicano già come segnale GEO*
 
 ## Fase 5 – Ads in scrittura, con guardrail
 

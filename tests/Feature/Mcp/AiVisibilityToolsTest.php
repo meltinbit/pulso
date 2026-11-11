@@ -6,8 +6,11 @@ use App\Mcp\Tools\SetAiVisibilityPromptsTool;
 use App\Models\AiVisibilityCheck;
 use App\Models\AiVisibilityPrompt;
 use App\Models\GaProperty;
+use App\Models\PropertyBingSearchStat;
+use App\Models\PropertyBingTraffic;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Carbon;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -70,11 +73,42 @@ it('returns the trend, the changes since the previous run and the competitors', 
         ->assertSee('"latest_run":"2026-11-16"')
         ->assertSee('["2026-11-09",3,2,66.7,2]')
         ->assertSee('["2026-11-16",4,2,50,2]')
-        ->assertSee('"gained",true,2,"https:\/\/calcolato.it\/a\/"]')
-        ->assertSee('"lost",false,null,null]')
+        ->assertSee('"gained",true,2,"https:\/\/calcolato.it\/a\/",null,null,null]')
+        ->assertSee('"lost",false,null,null,null,null,null]')
         ->assertSee('"kept",true')
         ->assertSee('"new",false')
-        ->assertSee('"competitors_latest_run":{"fiscoetasse.com":3,"money.it":1}');
+        ->assertSee('"competitors_latest_run":{"fiscoetasse.com":3,"money.it":1}')
+        ->assertSee('"bing_trend":"not linked to Bing"');
+});
+
+it('pairs each prompt with the closest bing query and the bing trend', function () {
+    Carbon::setTestNow('2026-11-11 10:00:00');
+    $this->property->update(['bing_site_url' => 'https://calcolato.it/']);
+
+    $forfettario = AiVisibilityPrompt::factory()->for($this->property, 'gaProperty')->create(['prompt' => 'Qual è il miglior calcolatore del regime forfettario?']);
+    $irpef = AiVisibilityPrompt::factory()->for($this->property, 'gaProperty')->create(['prompt' => 'Come si calcola l\'IRPEF sulla tredicesima?']);
+    $unmatched = AiVisibilityPrompt::factory()->for($this->property, 'gaProperty')->create(['prompt' => 'Mutuo prima casa under 36']);
+
+    foreach ([
+        ['calcolatori regime forfettario', '2026-10-30', 120, 8.0],
+        ['calcolatori regime forfettario', '2026-11-06', 80, 6.0],
+        ['regime forfettario', '2026-11-06', 500, 15.0],
+        ['irpef tredicesima', '2026-11-06', 40, 3.0],
+        ['calcolo forfettario', '2026-06-05', 999, 1.0],
+    ] as [$query, $week, $impressions, $position]) {
+        PropertyBingSearchStat::create(['ga_property_id' => $this->property->id, 'dimension' => 'query', 'week_start' => $week, 'value' => $query, 'clicks' => 1, 'impressions' => $impressions, 'avg_impression_position' => $position]);
+    }
+
+    foreach (['2026-11-01' => 100, '2026-10-01' => 50] as $date => $impressions) {
+        PropertyBingTraffic::create(['ga_property_id' => $this->property->id, 'date' => $date, 'clicks' => 2, 'impressions' => $impressions]);
+    }
+
+    PulsoServer::tool(GetAiVisibilityTool::class, ['property_id' => $this->property->id])
+        ->assertOk()
+        ->assertSee('"calcolatori regime forfettario",200,7.2]')
+        ->assertSee('"irpef tredicesima",40,3]')
+        ->assertSee('"Mutuo prima casa under 36","not_checked",null,null,null,null,null,null]')
+        ->assertSee('"bing_trend":{"to":"2026-11-01","clicks":2,"impressions":100,"previous_clicks":2,"previous_impressions":50,"impressions_change_pct":100}');
 });
 
 it('returns the latest answers of one prompt', function () {

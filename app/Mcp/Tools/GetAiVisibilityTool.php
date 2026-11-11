@@ -6,6 +6,7 @@ use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\AiVisibilityCheck;
 use App\Models\AiVisibilityPrompt;
 use App\Services\AiVisibilityService;
+use App\Services\BingGeoSignal;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Request;
@@ -14,13 +15,16 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('GEO visibility of a property in ChatGPT answers (OpenAI API with web search), from the tracked prompts (see set-ai-visibility-prompts). Returns the trend per run (prompts checked, how many cite the site, share %, average position among the cited sites), each prompt in the latest run compared with the previous one (gained, lost, kept, still missing, new) with the cited page, and the competitor domains ChatGPT cites most. Answers via API are a proxy of what ChatGPT users see, good for trends. Pass prompt_id to read the latest answers to one prompt.')]
+#[Description('GEO visibility of a property in ChatGPT answers (OpenAI API with web search), from the tracked prompts (see set-ai-visibility-prompts). Returns the trend per run (prompts checked, how many cite the site, share %, average position among the cited sites), each prompt in the latest run compared with the previous one (gained, lost, kept, still missing, new) with the cited page, and the competitor domains ChatGPT cites most. Bing is a GEO signal too (ChatGPT search and Copilot lean on its index): each prompt carries the closest Bing query of the last 12 weeks with the site\'s Bing impressions and position, and bing_trend compares the last 28 days of Bing traffic with the 28 before. A lost or missing prompt with a weak or absent Bing query points to a page to create or strengthen. Answers via API are a proxy of what ChatGPT users see, good for trends. Pass prompt_id to read the latest answers to one prompt.')]
 #[IsReadOnly]
 class GetAiVisibilityTool extends Tool
 {
     use ResolvesMcpContext;
 
-    public function __construct(private AiVisibilityService $aiVisibility) {}
+    public function __construct(
+        private AiVisibilityService $aiVisibility,
+        private BingGeoSignal $bing,
+    ) {}
 
     public function handle(Request $request): Response
     {
@@ -66,6 +70,7 @@ class GetAiVisibilityTool extends Tool
         $host = parse_url((string) $property->website_url, PHP_URL_HOST);
 
         $prompts = $property->aiVisibilityPrompts()->where('is_active', true)->orderBy('id')->get();
+        $bing = $this->bing->matchPrompts($property, $prompts->pluck('prompt', 'id')->all());
 
         return Response::text(json_encode([
             'property' => $property->display_name,
@@ -88,8 +93,8 @@ class GetAiVisibilityTool extends Tool
                 })->values(),
             ],
             'prompts' => [
-                'cols' => ['id', 'prompt', 'change', 'mentioned', 'position', 'cited_url'],
-                'rows' => $prompts->map(function (AiVisibilityPrompt $prompt) use ($latest, $previous): array {
+                'cols' => ['id', 'prompt', 'change', 'mentioned', 'position', 'cited_url', 'bing_query', 'bing_impressions', 'bing_position'],
+                'rows' => $prompts->map(function (AiVisibilityPrompt $prompt) use ($latest, $previous, $bing): array {
                     $now = $latest[$prompt->id] ?? null;
                     $before = $previous[$prompt->id] ?? null;
 
@@ -100,10 +105,14 @@ class GetAiVisibilityTool extends Tool
                         $now?->mentioned,
                         $now?->position,
                         $now?->cited_url,
+                        $bing[$prompt->id]['query'] ?? null,
+                        $bing[$prompt->id]['impressions'] ?? null,
+                        $bing[$prompt->id]['position'] ?? null,
                     ];
                 })->values(),
             ],
             'competitors_latest_run' => $this->competitors($latest->values(), $host),
+            'bing_trend' => $property->bing_site_url === null ? 'not linked to Bing' : $this->bing->trend($property),
             'budget' => [
                 'spent_this_month_usd' => $this->aiVisibility->spentThisMonthUsd($this->currentUser()),
                 'cap_eur' => $this->aiVisibility->monthlyCapEur($this->currentUser()),

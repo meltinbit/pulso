@@ -12,3 +12,4 @@
 - 2026-11-11 · Fase 3, Meta Ads in Pulso (D5): MetaAdsService sulla Marketing API v27.0, tool list-meta-ad-accounts, get-meta-campaigns, get-meta-ads, get-meta-breakdown, Impostazioni → Meta, stato nella pagina Health · none · token Meta da creare e prova reale
 - 2026-11-11 · Fase 4, prompt tracking (D6): tabelle ai_visibility, client OpenAI Responses con ricerca web, giro settimanale con tetto mensile, tool set-ai-visibility-prompts e get-ai-visibility, Impostazioni → AI visibility, Health · none · API key OpenAI, prompt degli agenti, fonte crawler AI
 - 2026-11-11 · Fase 4, crawler AI (D7): endpoint /api/ai-crawlers con token per sito, conteggi giornalieri per bot e pagina, tool get-ai-crawlers, middleware Laravel nel README · none · collegare i siti, Bing come segnale GEO
+- 2026-11-11 · Fase 4 chiusa: Bing come segnale GEO in get-ai-visibility (query Bing più vicina a ogni prompt, trend Bing 28 giorni) · none · revisione di Fabio, poi Fase 5
