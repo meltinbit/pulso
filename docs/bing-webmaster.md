@@ -1,6 +1,6 @@
 # Bing Webmaster Tools — piano di integrazione
 
-Stato: **da implementare**. Verifiche fatte il 10/11/2026 con un'API key reale (12 siti verificati, solo uno con dati: tutti i numeri sotto vengono da quel sito).
+Stato: **implementato l'11/11/2026** (fasi 1 e 2; al posto della pagina Bing c'è la colonna Bing nella pagina Health). Differenze rispetto al disegno: una sola tabella `property_bing_search_stats` con `dimension` (query/page) al posto di due; un solo tool `get-property-bing-search` con `dimension` e filtro `contains`; in più il tool `submit-urls-to-bing` (`SubmitUrlBatch` + `GetUrlSubmissionQuota`, stessa API key). Verifiche fatte il 10/11/2026 con un'API key reale (12 siti verificati, solo uno con dati: tutti i numeri sotto vengono da quel sito).
 
 ## 1. Cosa dice l'API (verificato)
 

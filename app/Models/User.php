@@ -47,8 +47,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'properties_limit' => 'integer',
-            'trial_ends_at' => 'datetime',
         ];
     }
 
@@ -79,11 +77,6 @@ class User extends Authenticatable
         }
 
         return $this->gaProperties()->where('is_active', true)->first();
-    }
-
-    public function funnels(): HasMany
-    {
-        return $this->hasMany(Funnel::class);
     }
 
     public function mcpToken(): HasOne

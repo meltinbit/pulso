@@ -18,7 +18,7 @@ import { PropertySwitcher } from './property-switcher';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Health',
         url: '/dashboard',
         icon: LayoutGrid,
     },

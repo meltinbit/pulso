@@ -2,7 +2,7 @@
 
 ![Pulso](public/pulso.png)
 
-GA4 Dashboard SaaS for agencies and freelancers. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4. Includes daily analytics snapshots with trend analysis, Google Search Console integration, live URL index inspection, Telegram notifications, and an MCP server for AI-powered insights via Claude.ai.
+Single-user MCP connector for SEO, GEO and Ads analysis, with a minimal admin panel. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4. Collects daily GA4 snapshots with trend analysis, Google Search Console, Bing Webmaster Tools and AdSense data, Keyword Planner research and live URL index inspection, and exposes them to AI agents through an MCP server. The admin panel shows connection health, the MCP call log and the raw data.
 
 ## Requirements
 
@@ -259,7 +259,14 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `get-property-pages` | Get top pages with per-page engagement metrics |
 | `get-property-search-queries` | Get top Google Search Console queries, filterable by page (URL or prefix) and query text |
 | `get-property-index-status` | Inspect indexed/non-indexed pages with coverage reasons |
-| `get-property-summary` | Comprehensive summary with averages, anomalies, sources, pages, and queries |
+| `get-property-events` | GA4 events (standard and custom) aggregated over a range |
+| `get-property-funnel` | Live GA4 funnel report over ordered events or page visits |
+| `get-property-adsense` | AdSense revenue with breakdowns by country, platform and ad unit |
+| `get-property-summary` | Comprehensive summary with averages, anomalies, sources, pages, queries and Bing |
+| `get-property-bing-search` | Bing queries or pages (weekly data, ranges widened to whole weeks) |
+| `get-property-bing-traffic` | Bing clicks and impressions vs the previous period, plus crawl health |
+| `submit-urls-to-bing` | Ask Bing to recrawl changed pages, within the daily quota (write) |
+| `get-keyword-ideas` / `get-keyword-metrics` / `get-keyword-gap` / `search-geo-targets` | Google Ads Keyword Planner research (see `docs/google-ads-keywords.md`) |
 
 All tools support date ranges (`from`/`to`) for trend analysis over time where applicable.
 
@@ -280,7 +287,13 @@ Add Pulso as a remote MCP server using your deployment URL:
 https://your-domain.com/mcp/pulso?token=YOUR_TOKEN
 ```
 
-All tools are read-only and expose snapshot data for AI-driven analysis.
+Name each agent with `&agent=seo` (or the `X-Pulso-Agent` header): every tool call is recorded in the **MCP log** page with the agent, the size of the answer (≈ tokens) and any error, and kept for 90 days.
+
+All tools are read-only except `submit-urls-to-bing`.
+
+### Bing Webmaster Tools
+
+Save the API key (Bing Webmaster Tools → Settings → API access) in **Settings > Bing**. Properties are linked to the verified Bing site with the same domain; the link can be changed on the same page. Data is synced every day at 06:00, or with `php artisan pulso:sync-bing`. See `docs/bing-webmaster.md`.
 
 ## Testing
 
@@ -289,7 +302,7 @@ All tools are read-only and expose snapshot data for AI-driven analysis.
 php artisan test
 
 # Run specific test file
-php artisan test --filter=DashboardTest
+php artisan test --filter=HealthDashboardTest
 
 # Run with compact output
 php artisan test --compact

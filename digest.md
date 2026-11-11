@@ -5,3 +5,4 @@
 - 2026-11-09 · PROJECT.md scritto e confermato da Fabio · none · —
 - 2026-11-10 · Ricerca e verifica API Bing Webmaster Tools con key reale; piano in docs/bing-webmaster.md · none · fase 1 da avviare
 - 2026-11-11 · Fase 0 del piano di evoluzione (headless/MCP): audit e gap analysis in docs/piano-evoluzione.md, nessuna modifica al codice · none · revisione di Fabio, poi Fase 1
+- 2026-11-11 · Fase 1 del piano di evoluzione: test verdi, tool MCP funnel, tolti dashboard/report/funnel UI/registrazione, pagina Health, log chiamate MCP, integrazione Bing completa (sync, impostazioni, 3 tool MCP), DB locale pulso_dev · none · revisione di Fabio, poi Fase 2

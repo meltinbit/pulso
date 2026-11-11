@@ -3,31 +3,26 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { ArrowRightLeft, Camera, Coins, FileText, Filter, Globe, KeyRound, LayoutGrid, Settings, Users } from 'lucide-react';
+import { Camera, Coins, Globe, HeartPulse, KeyRound, ScrollText, Settings } from 'lucide-react';
 import AppLogo from './app-logo';
 import { PropertyAwareLink } from './property-aware-link';
 import { PropertySwitcher } from './property-switcher';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Health',
         url: '/dashboard',
-        icon: LayoutGrid,
+        icon: HeartPulse,
     },
     {
-        title: 'Traffic',
-        url: '/reports/traffic',
-        icon: ArrowRightLeft,
+        title: 'MCP log',
+        url: '/mcp-log',
+        icon: ScrollText,
     },
     {
-        title: 'Content',
-        url: '/reports/content',
-        icon: FileText,
-    },
-    {
-        title: 'Audience',
-        url: '/reports/audience',
-        icon: Users,
+        title: 'Snapshots',
+        url: '/snapshots',
+        icon: Camera,
     },
     {
         title: 'AdSense',
@@ -38,16 +33,6 @@ const mainNavItems: NavItem[] = [
         title: 'Keywords',
         url: '/keywords',
         icon: KeyRound,
-    },
-    {
-        title: 'Funnels',
-        url: '/funnels',
-        icon: Filter,
-    },
-    {
-        title: 'Snapshots',
-        url: '/snapshots',
-        icon: Camera,
     },
 ];
 

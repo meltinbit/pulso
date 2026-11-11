@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\BingSettingsController;
 use App\Http\Controllers\Settings\GoogleSettingsController;
 use App\Http\Controllers\Settings\McpSettingsController;
 use App\Http\Controllers\Settings\PasswordController;
@@ -25,6 +26,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/google', [GoogleSettingsController::class, 'edit'])->name('settings.google');
     Route::put('settings/google', [GoogleSettingsController::class, 'update'])->name('settings.google.update');
+
+    Route::get('settings/bing', [BingSettingsController::class, 'edit'])->name('settings.bing');
+    Route::put('settings/bing', [BingSettingsController::class, 'update'])->name('settings.bing.update');
+    Route::put('settings/bing/properties/{property}', [BingSettingsController::class, 'updateProperty'])->name('settings.bing.property');
+    Route::post('settings/bing/sync', [BingSettingsController::class, 'sync'])->name('settings.bing.sync');
 
     Route::get('settings/mcp', [McpSettingsController::class, 'edit'])->name('settings.mcp');
     Route::post('settings/mcp', [McpSettingsController::class, 'store'])->name('settings.mcp.store');

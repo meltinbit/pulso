@@ -30,4 +30,11 @@ class GaPropertyFactory extends Factory
             'is_active' => true,
         ];
     }
+
+    public function active(): static
+    {
+        return $this->state(fn () => [
+            'is_active' => true,
+        ]);
+    }
 }

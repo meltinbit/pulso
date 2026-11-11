@@ -84,6 +84,35 @@ class TelegramNotificationService
         return true;
     }
 
+    public function sendBingApiKeyAlert(int $userId): bool
+    {
+        $token = $this->settings->get($userId, 'telegram_bot_token');
+        $chatId = $this->settings->get($userId, 'telegram_chat_id');
+
+        if (! $token || ! $chatId) {
+            Log::warning('Telegram credentials not configured for user '.$userId.', skipping Bing API key alert.');
+
+            return false;
+        }
+
+        $message = implode("\n", [
+            "\xE2\x9A\xA0\xEF\xB8\x8F Pulso \xE2\x80\x94 Bing connection issue",
+            '',
+            'The Bing Webmaster Tools API key is no longer valid.',
+            'Generate a new one in Bing Webmaster Tools (Settings > API access) and save it in Pulso under Settings > Bing.',
+        ]);
+
+        $response = $this->sendMessage($token, $chatId, $message);
+
+        if (! $response->successful()) {
+            Log::warning('Failed to send Bing API key alert: '.$response->body());
+
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Build the Markdown message for the daily digest.
      *

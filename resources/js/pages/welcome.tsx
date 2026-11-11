@@ -55,12 +55,6 @@ export default function Welcome() {
                                 >
                                     Log in
                                 </Link>
-                                <Link
-                                    href={route('register')}
-                                    className="rounded-md border border-white/10 px-5 py-1.5 text-sm text-white/80 transition hover:border-white/25 hover:text-white"
-                                >
-                                    Register
-                                </Link>
                             </>
                         )}
                     </nav>
@@ -108,12 +102,6 @@ export default function Welcome() {
                             </Link>
                         ) : (
                             <>
-                                <Link
-                                    href={route('register')}
-                                    className="rounded-lg bg-[#2dd4a8] px-7 py-2.5 text-sm font-semibold text-[#0a0a0a] shadow-[0_0_20px_rgba(45,212,168,0.3)] transition hover:bg-[#3be0b6] hover:shadow-[0_0_30px_rgba(45,212,168,0.4)]"
-                                >
-                                    Get Started
-                                </Link>
                                 <Link
                                     href={route('login')}
                                     className="rounded-lg border border-white/10 px-7 py-2.5 text-sm font-medium text-white/70 transition hover:border-white/25 hover:text-white"

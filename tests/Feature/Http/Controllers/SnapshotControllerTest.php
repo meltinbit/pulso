@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 
+use function Pest\Laravel\actingAs;
+
 beforeEach(function () {
     Http::preventStrayRequests();
     Carbon::setTestNow(Carbon::parse('2026-04-24'));

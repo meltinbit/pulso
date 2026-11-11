@@ -24,7 +24,7 @@ return new class extends Migration
             $table->decimal('position', 5, 1)->default(0);
             $table->timestamps();
 
-            $table->index(['property_snapshot_id', 'clicks']);
+            $table->index(['property_snapshot_id', 'clicks'], 'snapshot_search_queries_clicks_index');
         });
     }
 };

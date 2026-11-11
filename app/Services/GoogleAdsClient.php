@@ -107,7 +107,7 @@ class GoogleAdsClient
     /**
      * @return array<int, string>
      */
-    private function missingSettings(): array
+    public function missingSettings(): array
     {
         $required = [
             'developer_token' => 'GOOGLE_ADS_DEVELOPER_TOKEN',

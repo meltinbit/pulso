@@ -19,6 +19,7 @@ class GaProperty extends Model
         'property_id',
         'display_name',
         'website_url',
+        'bing_site_url',
         'timezone',
         'currency',
         'is_active',
@@ -49,11 +50,6 @@ class GaProperty extends Model
         return $this->belongsTo(GaConnection::class);
     }
 
-    public function funnels(): HasMany
-    {
-        return $this->hasMany(Funnel::class);
-    }
-
     public function analyticsCache(): HasMany
     {
         return $this->hasMany(AnalyticsCache::class);
@@ -72,5 +68,20 @@ class GaProperty extends Model
     public function adsenseMetrics(): HasMany
     {
         return $this->hasMany(PropertyAdsenseMetric::class);
+    }
+
+    public function bingTraffic(): HasMany
+    {
+        return $this->hasMany(PropertyBingTraffic::class);
+    }
+
+    public function bingSearchStats(): HasMany
+    {
+        return $this->hasMany(PropertyBingSearchStat::class);
+    }
+
+    public function bingCrawlStats(): HasMany
+    {
+        return $this->hasMany(PropertyBingCrawlStat::class);
     }
 }

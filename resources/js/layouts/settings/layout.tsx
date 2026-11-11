@@ -27,6 +27,11 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
     {
+        title: 'Bing',
+        url: '/settings/bing',
+        icon: null,
+    },
+    {
         title: 'MCP',
         url: '/settings/mcp',
         icon: null,

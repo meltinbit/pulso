@@ -35,28 +35,30 @@ Pulso diventa il connettore MCP unico con cui gli agenti di Jérôme fanno cresc
 - **Niente Airbyte:** agli agenti servono dati già sintetizzati, non tabelle grezze da interrogare in SQL.
 - **Token-lean prima di tutto:** ogni tool restituisce risposte aggregate e brevi, non dump di dati.
 - **Nuove sorgenti = tool piccoli e specializzati**, sullo stesso modello di Pulso e Sonda.
-- **Stato attuale:** GA4, Search Console, Keyword Planner, AdSense, index status, keyword gap. *Bing Webmaster Tools non è ancora implementato: esiste solo il piano in `docs/bing-webmaster.md`.*
+- **Stato attuale:** GA4, Search Console, Bing Webmaster Tools (API key, dall'11/11), Keyword Planner, AdSense, index status, keyword gap.
 
 ## Fase 1 – Snellimento: Pulso headless
 
+*Completata l'11/11/2026.*
+
 **Da tenere nella UI**
 
-- [ ] Settings e connessioni: credenziali Google, chiave Bing (in `.env`), associazione siti↔proprietà — *parziale: client ID/secret Google salvati per utente in `app_settings` (non `.env`), connessioni OAuth e proprietà presenti; Bing assente*
-- [ ] Salute connessioni: token scaduti, quote API esaurite, siti non verificati — *parziale: `CheckGoogleConnections` ogni ora + Telegram per i token scaduti, contatore operazioni Google Ads; nessuna vista unica, niente quote GA4/GSC né siti non verificati*
-- [ ] Log chiamate MCP: tool chiamato, agente, peso della risposta, errori — *assente (solo `mcp_tokens.last_used_at`)*
-- [ ] Vista dati grezzi minima — *parziale: `snapshots/index` e `adsense/index` possono fare da base*
+- [x] Settings e connessioni: credenziali Google, chiave Bing (in `app_settings`, come le altre: D2), associazione siti↔proprietà — *nuova pagina Impostazioni → Bing con verifica della key e abbinamento sito↔proprietà modificabile*
+- [x] Salute connessioni: token scaduti, quote API esaurite, siti non verificati — *pagina Health come home (`ConnectionHealthService`): connessioni Google e Bing, freschezza di snapshot/GSC/AdSense/Bing per proprietà, quota Google Ads, MCP, job falliti; ogni problema dice cosa sistemare. Le quote GA4/GSC non hanno un'API di lettura: emergono come dati fermi*
+- [x] Log chiamate MCP: tool chiamato, agente, peso della risposta, errori — *middleware `LogMcpToolCalls` + pagina MCP log; agente da `?agent=` o header `X-Pulso-Agent`; conservato 90 giorni (`model:prune`)*
+- [x] Vista dati grezzi minima — *restano Snapshots, AdSense e Keywords*
 
 **Da togliere**
 
-- [ ] Dashboard ricche, grafici curati, report esportabili — *presenti: dashboard, report traffic/content/audience (chiamate GA4 live + `AnalyticsCache`), grafici AdSense, export CSV keyword*
-- [ ] Funnel builder visuale (resta il tool MCP) — *attenzione: il tool MCP funnel non esiste; il funnel vive solo nella UI*
-- [ ] Impalcatura multi-tenant: team, scoping per tenant nelle query, cache con chiave per tenant — *niente team né cache per tenant; c'è lo scoping per `user_id` (vedi audit)*
+- [x] Dashboard ricche, grafici curati, report esportabili — *tolti dashboard e report traffic/content/audience con il job `RefreshAnalyticsCache`; Keywords (con CSV) resta per scelta*
+- [x] Funnel builder visuale (resta il tool MCP) — *creato `get-property-funnel` (passi ad hoc, evento e/o pagina), tolta la UI; eliminati anche modelli e tabelle `funnels`/`funnel_steps`*
+- [x] Impalcatura multi-tenant — *niente team né cache per tenant da togliere; tolte registrazione e colonne `plan`, `properties_limit`, `trial_ends_at`; `user_id` resta (relazioni e auth)*
 
-**Bing (da fare: non ancora implementato)**
+**Bing**
 
-- [ ] Spostare la API key in `.env` — *in contrasto con la decisione D1 (key per utente in `app_settings`): va superata*
-- [ ] Scoperta automatica siti con `GetUserSites` e associazione alle proprietà GA4 per dominio
-- [ ] Esporre IndexNow / URL submission come tool
+- [x] API key salvata cifrata in `app_settings` come le altre credenziali (decisione D2)
+- [x] Scoperta automatica siti con `GetUserSites` e associazione alle proprietà per dominio — *più sync giornaliero alle 06:00 di traffico, ricerche, pagine e crawl, tool `get-property-bing-search` e `get-property-bing-traffic`, sezione Bing nel summary, avviso Telegram se la key smette di funzionare*
+- [x] Esporre URL submission come tool — *`submit-urls-to-bing` con la Webmaster API (`SubmitUrlBatch`, stessa key, quota controllata prima dell'invio); IndexNow non serve per ora, perché richiede un file chiave sul sito*
 
 ## Fase 2 – Registro modifiche
 

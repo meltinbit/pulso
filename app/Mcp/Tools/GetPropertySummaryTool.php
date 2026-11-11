@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Mcp\Tools\Concerns\ResolvesMcpContext;
 use App\Models\GaProperty;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Carbon;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -111,6 +112,7 @@ class GetPropertySummaryTool extends Tool
             'anomalies' => $anomalies,
             'top_sources_latest' => $latestSources,
             'top_search_queries' => $this->getLatestSearchQueries($property),
+            'bing' => $this->bingSummary($property),
             'top_pages_latest' => $latest->pages()
                 ->orderByDesc('pageviews')
                 ->limit(10)
@@ -127,6 +129,41 @@ class GetPropertySummaryTool extends Tool
         ];
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Bing clicks and impressions of the last 28 days with data against the 28
+     * before, and the latest count of pages in the Bing index.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function bingSummary(GaProperty $property): ?array
+    {
+        $lastDay = $property->bingTraffic()->max('date');
+
+        if ($property->bing_site_url === null || ! $lastDay) {
+            return null;
+        }
+
+        $end = Carbon::parse($lastDay);
+        $sum = fn (Carbon $from, Carbon $to): array => (array) $property->bingTraffic()
+            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+            ->selectRaw('COALESCE(SUM(clicks), 0) as clicks, COALESCE(SUM(impressions), 0) as impressions')
+            ->first()
+            ?->only(['clicks', 'impressions']);
+
+        $current = $sum($end->copy()->subDays(27), $end);
+        $previous = $sum($end->copy()->subDays(55), $end->copy()->subDays(28));
+        $crawl = $property->bingCrawlStats()->latest('date')->first();
+
+        return [
+            'last_day' => $end->toDateString(),
+            'clicks_28d' => (int) $current['clicks'],
+            'impressions_28d' => (int) $current['impressions'],
+            'clicks_prev_28d' => (int) $previous['clicks'],
+            'impressions_prev_28d' => (int) $previous['impressions'],
+            'in_index' => $crawl?->in_index,
+        ];
     }
 
     /**

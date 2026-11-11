@@ -156,6 +156,7 @@ test('job sends Telegram digest after generating snapshots', function () {
 
     Http::assertSent(function ($request) {
         return str_contains($request->url(), 'api.telegram.org');
+    });
 });
 
 test('job detects and fills in missing snapshots between last snapshot and yesterday', function () {
@@ -167,7 +168,7 @@ test('job detects and fills in missing snapshots between last snapshot and yeste
         'ga_connection_id' => $connection->id,
         'is_active' => true,
     ]);
-    
+
     // Create a snapshot for 3 days ago (April 21st)
     $oldSnapshot = PropertySnapshot::factory()->for($property, 'gaProperty')->create([
         'snapshot_date' => Carbon::parse('2026-04-21')->startOfDay(),
@@ -175,7 +176,7 @@ test('job detects and fills in missing snapshots between last snapshot and yeste
         'sessions' => 200,
         'pageviews' => 500,
     ]);
-    
+
     // Setup HTTP fakes (will need 2 days of snapshots = 14 calls, 7 per day)
     // Each day needs 7 API calls: core metrics, week ago metrics, avg metrics, sources, engagement, pages, events
     Http::fake([
@@ -206,27 +207,25 @@ test('job detects and fills in missing snapshots between last snapshot and yeste
 
     // We expect 2 log messages for backfill snapshots and 1 for the Telegram message
     Log::spy();
-    
+
     (new GenerateDailySnapshots)->handle(
         app(SnapshotAnalyzerService::class),
         app(TelegramNotificationService::class),
         app(SettingService::class),
     );
-    
+
     // We should now have 3 snapshots total (the original + 2 filled in)
     expect(PropertySnapshot::count())->toBe(3);
-    
+
     // Verify we have snapshots for Apr 21, 22, and 23
     expect(PropertySnapshot::where('snapshot_date', Carbon::parse('2026-04-21')->startOfDay())->exists())->toBeTrue();
     expect(PropertySnapshot::where('snapshot_date', Carbon::parse('2026-04-22')->startOfDay())->exists())->toBeTrue();
     expect(PropertySnapshot::where('snapshot_date', Carbon::parse('2026-04-23')->startOfDay())->exists())->toBeTrue();
-    
+
     // Verify the Telegram functionality
     Http::assertSent(function ($request) {
         return str_contains($request->url(), 'api.telegram.org');
     });
-});
-
 });
 
 test('job does nothing when no users have active properties', function () {
