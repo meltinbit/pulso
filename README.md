@@ -269,6 +269,8 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `get-property-bing-traffic` | Bing clicks and impressions vs the previous period, plus crawl health |
 | `submit-urls-to-bing` | Ask Bing to recrawl changed pages, within the daily quota (write) |
 | `get-keyword-ideas` / `get-keyword-metrics` / `get-keyword-gap` / `search-geo-targets` | Google Ads Keyword Planner research (see `docs/google-ads-keywords.md`) |
+| `list-ads-accounts` / `get-ads-campaigns` / `get-ads-search-terms` | Google Ads reporting (read only): accounts, campaign performance with CPA/ROAS, search terms |
+| `get-paid-organic-gap` | Paid search terms that convert but have no strong organic page in Search Console |
 
 All tools support date ranges (`from`/`to`) for trend analysis over time where applicable. Trend tools also return the annotations of their range, so causes and effects come in one call; the **Annotations** page lists them and lets you delete wrong ones.
 

@@ -57,7 +57,7 @@ test('maps keyword ideas from the REST response', function () {
     ]);
 });
 
-test('sends seeds, Italian language, Italy and Google Search network with Ads headers', function () {
+test('sends seeds, Italian language, Italy and Google Search network with Ads headers and no developer token', function () {
     fakeGoogleAdsIdeas();
 
     app(GoogleAdsKeywordService::class)->keywordIdeas(['calcolo imu'], null, [], null, 50);
@@ -67,7 +67,7 @@ test('sends seeds, Italian language, Italy and Google Search network with Ads he
             return false;
         }
 
-        return $request->hasHeader('developer-token', 'dev-token')
+        return ! $request->hasHeader('developer-token')
             && $request->hasHeader('login-customer-id', '1112223333')
             && $request->hasHeader('Authorization', 'Bearer ads-token')
             && $request['language'] === 'languageConstants/1004'
@@ -130,10 +130,10 @@ test('refuses to call the API once the daily limit is reached', function () {
 });
 
 test('reports missing credentials without calling Google', function () {
-    configureGoogleAds(['developer_token' => null, 'refresh_token' => '']);
+    configureGoogleAds(['customer_id' => null, 'refresh_token' => '']);
 
     expect(fn () => app(GoogleAdsKeywordService::class)->keywordIdeas(['imu']))
-        ->toThrow(GoogleAdsApiException::class, 'mancano GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_REFRESH_TOKEN');
+        ->toThrow(GoogleAdsApiException::class, 'mancano GOOGLE_ADS_CUSTOMER_ID, GOOGLE_ADS_REFRESH_TOKEN');
 
     Http::assertNothingSent();
 });
@@ -162,7 +162,8 @@ test('translates Google Ads errors into readable messages', function (int $statu
         expect($e->errorCode)->toBe(array_values($errorCode)[0]);
     }
 })->with([
-    'test-only developer token' => [403, ['authorizationError' => 'DEVELOPER_TOKEN_NOT_APPROVED'], 'solo per account di test'],
+    'test-only access' => [403, ['authorizationError' => 'DEVELOPER_TOKEN_NOT_APPROVED'], 'solo agli account di test'],
+    'cloud project not approved' => [403, ['authorizationError' => 'CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION'], 'non è approvato per gli account reali'],
     'permission denied' => [403, ['authorizationError' => 'USER_PERMISSION_DENIED'], 'GOOGLE_ADS_LOGIN_CUSTOMER_ID'],
     'missing keyword planner permission' => [403, ['authorizationError' => 'ACTION_NOT_PERMITTED'], 'ricerca keyword'],
     'wrong customer id' => [400, ['requestError' => 'INVALID_CUSTOMER_ID'], 'GOOGLE_ADS_CUSTOMER_ID'],

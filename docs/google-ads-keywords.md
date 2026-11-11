@@ -9,9 +9,10 @@ Pulso usa il **KeywordPlanIdeaService** della Google Ads API (v26, trasporto RES
 
 ## 1. Credenziali
 
+Dal 2026 la Google Ads API non usa più il developer token: l'accesso è legato al **progetto Google Cloud** del client OAuth (livello Explorer o Basic in Google Cloud Console → API e servizi → Google Ads API → Livelli di accesso). Per la ricerca keyword serve almeno **Basic**; Explorer basta per i report di sola lettura. Se il `.env` ha ancora `GOOGLE_ADS_DEVELOPER_TOKEN` puoi toglierlo: Pulso non lo manda più.
+
 | Variabile | Dove trovarla |
 |---|---|
-| `GOOGLE_ADS_DEVELOPER_TOKEN` | MCC → Amministrazione → Centro API. Il livello di accesso deve essere **Basic** ("Di base"): con "Test" non si leggono dati reali e con **Explorer** Google non consente la ricerca keyword. Basic richiede la verifica del brand in Google Auth Platform e si richiede in Google Cloud Console → API e servizi → Google Ads API → Livelli di accesso. |
 | `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | ID dell'MCC (solo cifre). |
 | `GOOGLE_ADS_CUSTOMER_ID` | ID dell'account Google Ads sotto l'MCC usato per le richieste (solo cifre). |
 | `GOOGLE_ADS_CLIENT_ID` / `GOOGLE_ADS_CLIENT_SECRET` | Google Cloud Console → API e servizi → Credenziali → client OAuth di tipo **Desktop app**. Abilita anche la "Google Ads API" nel progetto. |
@@ -71,3 +72,16 @@ Sidebar → **Keywords**. Il confronto con Search Console usa la property attiva
 - **Varianti**: Google raggruppa le varianti vicine ("calcolo imu", "calcolatori imu") e dà a tutte lo stesso volume e la stessa serie mensile. Le keyword con metriche identiche (volume ≥ 50) sono trattate come un gruppo: se il sito compare per una, le altre sono marcate `variant_of` e non contano come gap, e nel volume mancante ogni gruppo conta una volta sola.
 - **Mesi**: Pulso chiede a Google una finestra di 24 mesi e tiene gli ultimi 13 disponibili; l'ultimo mese pubblicato da Google è di solito uno o due mesi indietro.
 - **Errori**: token solo test, permessi mancanti, customer ID errato, quota esaurita, refresh token scaduto e limite giornaliero sono mostrati con un messaggio leggibile (dettagli completi nel log).
+
+## Report Ads in sola lettura
+
+Con le stesse credenziali Pulso legge le campagne degli account sotto l'MCC (GAQL via `googleAds:search`, cache di 60 minuti, ogni pagina di risultati conta come un'operazione):
+
+| Tool | Cosa restituisce |
+|---|---|
+| `list-ads-accounts` | Account sotto l'MCC: ID, nome, manager sì/no, stato, valuta. |
+| `get-ads-campaigns` | Per campagna: costo, clic, impressioni, conversioni, valore, CTR, CPC, CPA, ROAS; totali e variazione sul periodo precedente. Default: ultimi 30 giorni completi. |
+| `get-ads-search-terms` | Termini di ricerca sommati sui gruppi di annunci, con stato (aggiunto/escluso), filtri e la spesa senza conversioni. Le campagne Performance Max non sono incluse (Google le espone in un'altra vista). |
+| `get-paid-organic-gap` | Termini a pagamento che convertono, confrontati con Search Console della property: `missing` (nessuna pagina organica), `weak` (posizione oltre la soglia, default 10), `strong` (solo con `include_strong`). Default: ultimi 90 giorni. |
+
+`customer_id` è opzionale: senza, si usa `GOOGLE_ADS_CUSTOMER_ID`.

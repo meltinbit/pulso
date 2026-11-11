@@ -42,7 +42,6 @@ return [
     ],
 
     'google_ads' => [
-        'developer_token' => env('GOOGLE_ADS_DEVELOPER_TOKEN'),
         'login_customer_id' => env('GOOGLE_ADS_LOGIN_CUSTOMER_ID'),
         'customer_id' => env('GOOGLE_ADS_CUSTOMER_ID'),
         'client_id' => env('GOOGLE_ADS_CLIENT_ID'),

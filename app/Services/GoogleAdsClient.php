@@ -13,8 +13,11 @@ use Throwable;
 
 /**
  * Thin REST client for the Google Ads API, authenticated with the single set
- * of credentials stored in config/services.php. It keeps a daily operations
- * counter so keyword research stays within the developer token quota.
+ * of credentials stored in config/services.php. Since the developer token
+ * sunset (9 September 2026) API access follows the Google Cloud project of the
+ * OAuth client, so no developer-token header is sent (Google will reject it in
+ * a future major version). A daily operations counter keeps usage within the
+ * project's access level quota.
  */
 class GoogleAdsClient
 {
@@ -27,10 +30,9 @@ class GoogleAdsClient
      * @var array<string, string>
      */
     private const ERROR_MESSAGES = [
-        'DEVELOPER_TOKEN_NOT_APPROVED' => 'Accesso API solo per account di test: richiedi il livello Explorer o Basic in Google Cloud Console (API e servizi → Google Ads API → Livelli di accesso) e attendi l\'approvazione.',
-        'DEVELOPER_TOKEN_PROHIBITED' => 'Il developer token non può essere usato con questo progetto Google Cloud o account.',
-        'DEVELOPER_TOKEN_INVALID' => 'Il developer token non è valido: controlla GOOGLE_ADS_DEVELOPER_TOKEN.',
-        'DEVELOPER_TOKEN_PARAMETER_MISSING' => 'Developer token mancante: imposta GOOGLE_ADS_DEVELOPER_TOKEN.',
+        'DEVELOPER_TOKEN_NOT_APPROVED' => 'Il progetto Google Cloud ha accesso solo agli account di test: richiedi il livello Explorer o Basic in Google Cloud Console (API e servizi → Google Ads API → Livelli di accesso) e attendi l\'approvazione.',
+        'CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION' => 'Il progetto Google Cloud del client OAuth non è approvato per gli account reali: richiedi il livello Explorer o Basic in Google Cloud Console (API e servizi → Google Ads API → Livelli di accesso).',
+        'DEVELOPER_TOKEN_PROHIBITED' => 'Il progetto Google Cloud del client OAuth non può accedere a questo account Google Ads.',
         'USER_PERMISSION_DENIED' => 'L\'utente del refresh token non ha accesso a questo account: verifica GOOGLE_ADS_LOGIN_CUSTOMER_ID (MCC) e GOOGLE_ADS_CUSTOMER_ID.',
         'ACTION_NOT_PERMITTED' => 'L\'account non ha il permesso di usare la ricerca keyword (Keyword Planner).',
         'CUSTOMER_NOT_ENABLED' => 'L\'account Google Ads indicato in GOOGLE_ADS_CUSTOMER_ID non è attivo.',
@@ -58,7 +60,7 @@ class GoogleAdsClient
         $this->ensureConfigured();
         $this->ensureWithinDailyLimit();
 
-        $headers = ['developer-token' => (string) config('services.google_ads.developer_token')];
+        $headers = [];
 
         if ($loginCustomerId = $this->digits(config('services.google_ads.login_customer_id'))) {
             $headers['login-customer-id'] = $loginCustomerId;
@@ -79,6 +81,22 @@ class GoogleAdsClient
         }
 
         return $response->json() ?? [];
+    }
+
+    /**
+     * The manager (MCC) account the requests are made through, if any.
+     */
+    public function loginCustomerId(): ?string
+    {
+        return $this->digits(config('services.google_ads.login_customer_id'));
+    }
+
+    /**
+     * Digits of a customer ID written with or without dashes.
+     */
+    public function normalizeCustomerId(mixed $value): ?string
+    {
+        return $this->digits($value);
     }
 
     /**
@@ -110,7 +128,6 @@ class GoogleAdsClient
     public function missingSettings(): array
     {
         $required = [
-            'developer_token' => 'GOOGLE_ADS_DEVELOPER_TOKEN',
             'customer_id' => 'GOOGLE_ADS_CUSTOMER_ID',
             'client_id' => 'GOOGLE_ADS_CLIENT_ID',
             'client_secret' => 'GOOGLE_ADS_CLIENT_SECRET',

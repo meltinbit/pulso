@@ -3,9 +3,12 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddAnnotationTool;
+use App\Mcp\Tools\GetAdsCampaignsTool;
+use App\Mcp\Tools\GetAdsSearchTermsTool;
 use App\Mcp\Tools\GetKeywordGapTool;
 use App\Mcp\Tools\GetKeywordIdeasTool;
 use App\Mcp\Tools\GetKeywordMetricsTool;
+use App\Mcp\Tools\GetPaidOrganicGapTool;
 use App\Mcp\Tools\GetPropertyAdSenseTool;
 use App\Mcp\Tools\GetPropertyBingSearchTool;
 use App\Mcp\Tools\GetPropertyBingTrafficTool;
@@ -17,6 +20,7 @@ use App\Mcp\Tools\GetPropertySearchQueriesTool;
 use App\Mcp\Tools\GetPropertySnapshotsTool;
 use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
+use App\Mcp\Tools\ListAdsAccountsTool;
 use App\Mcp\Tools\ListAnnotationsTool;
 use App\Mcp\Tools\ListPropertiesTool;
 use App\Mcp\Tools\SearchGeoTargetsTool;
@@ -38,7 +42,9 @@ Change log: every site has annotations (content, technical, campaign, deploy). C
 
 Bing Webmaster Tools: get-property-bing-search returns Bing queries or pages (weekly data, Friday to Thursday, so ranges are widened to whole weeks), get-property-bing-traffic returns daily clicks and impressions with the previous period and crawl health (pages in the Bing index, crawl errors, 4xx/5xx), and get-property-summary includes a Bing section. Bing feeds Copilot, DuckDuckGo and several AI search engines, so it doubles as a GEO signal. submit-urls-to-bing asks Bing to recrawl changed pages, within a small daily quota per site. Bing data lags about 3 days.
 
-Keyword research (Google Ads Keyword Planner): use get-keyword-ideas for ideas from seeds or a URL, get-keyword-metrics to check specific keywords with 12 monthly volumes, and get-keyword-gap to see which ideas the property already ranks for in Search Console (last 90 days) and which are missing. Use search-geo-targets to resolve a place (e.g. a province vs a city) to a geo target ID. Defaults are Italian and Italy. Volumes are Google approximations, results are cached for 30 days, and keyword output is columnar (cols + rows) to save tokens.')]
+Keyword research (Google Ads Keyword Planner): use get-keyword-ideas for ideas from seeds or a URL, get-keyword-metrics to check specific keywords with 12 monthly volumes, and get-keyword-gap to see which ideas the property already ranks for in Search Console (last 90 days) and which are missing. Use search-geo-targets to resolve a place (e.g. a province vs a city) to a geo target ID. Defaults are Italian and Italy. Volumes are Google approximations, results are cached for 30 days, and keyword output is columnar (cols + rows) to save tokens.
+
+Google Ads (read only): list-ads-accounts lists the accounts, get-ads-campaigns returns campaign cost, conversions, CPA and ROAS with the previous period, get-ads-search-terms returns the real queries behind the ads (spend without conversions included, Performance Max excluded), and get-paid-organic-gap crosses the converting search terms with Search Console to find queries that convert in Ads but have no strong organic page. Ads tools default to complete days (up to yesterday) and amounts are in the account currency.')]
 class PulsoServer extends Server
 {
     protected array $tools = [
@@ -61,5 +67,9 @@ class PulsoServer extends Server
         GetKeywordMetricsTool::class,
         GetKeywordGapTool::class,
         SearchGeoTargetsTool::class,
+        ListAdsAccountsTool::class,
+        GetAdsCampaignsTool::class,
+        GetAdsSearchTermsTool::class,
+        GetPaidOrganicGapTool::class,
     ];
 }

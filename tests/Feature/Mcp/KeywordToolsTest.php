@@ -74,10 +74,10 @@ test('get-keyword-ideas resolves a location name through geo target suggestions'
 });
 
 test('get-keyword-ideas returns a readable error instead of a stack trace', function () {
-    configureGoogleAds(['developer_token' => null]);
+    configureGoogleAds(['refresh_token' => null]);
 
     PulsoServer::tool(GetKeywordIdeasTool::class, ['seeds' => ['imu']])
-        ->assertHasErrors(['Google Ads non è configurato: mancano GOOGLE_ADS_DEVELOPER_TOKEN nel file .env.']);
+        ->assertHasErrors(['Google Ads non è configurato: mancano GOOGLE_ADS_REFRESH_TOKEN nel file .env.']);
 });
 
 test('get-keyword-ideas cannot read another user property', function () {

@@ -8,3 +8,4 @@
 - B2: 10 test rossi preesistenti — done 2026-11-11: aggiunti gli stati factory active(), import di actingAs, corretta la parentesi che annidava un test.
 - Q: Tabelle funnels/funnel_steps inutilizzate — done 2026-11-11: eliminate con la migration drop_funnel_tables, insieme a modelli e factory.
 - Q: Revisione della Fase 1 — done 2026-11-11: approvata da Fabio ("vai"), Fase 2 avviata.
+- Q: Revisione della Fase 2 — done 2026-11-11: approvata da Fabio ("vai"), push di 6c28a92 e Fase 3 avviata.

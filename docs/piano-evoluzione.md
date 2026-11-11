@@ -75,14 +75,14 @@ In più: pagina admin **Annotations** per controllare le voci e cancellare quell
 
 **Google Ads**
 
-- [ ] Verificare che Pulso usi l'accesso per progetto Google Cloud — *parziale: le chiamate funzionano, ma il client manda ancora l'header `developer-token` (oggi ignorato da Google, rifiutato in una futura major) e considera `GOOGLE_ADS_DEVELOPER_TOKEN` obbligatorio*
-- [ ] Tool performance campagne (costi, conversioni, CPA) e search terms report, aggregati
-- [ ] Tool di incrocio: query a pagamento che convertono ma non hanno una pagina organica forte
+- [x] Verificare che Pulso usi l'accesso per progetto Google Cloud — *fatto: il client non manda più l'header `developer-token` e `GOOGLE_ADS_DEVELOPER_TOKEN` non serve più; autenticazione OAuth + `login-customer-id`, API v26*
+- [x] Tool performance campagne (costi, conversioni, CPA) e search terms report, aggregati — *`list-ads-accounts`, `get-ads-campaigns` (con periodo precedente), `get-ads-search-terms` (senza Performance Max, che Google espone a parte)*
+- [x] Tool di incrocio: query a pagamento che convertono ma non hanno una pagina organica forte — *`get-paid-organic-gap`: missing / weak / strong rispetto a Search Console*
 
 **Meta**
 
-- [ ] Provare subito l'MCP ufficiale (mcp.facebook.com/ads) solo sull'agente ads di Jérôme
-- [ ] Misurare quanti token costano i suoi 29 tool in contesto
+- [ ] Provare subito l'MCP ufficiale (mcp.facebook.com/ads) solo sull'agente ads di Jérôme — *fuori da questo repo: va collegato in Jérôme*
+- [ ] Misurare quanti token costano i suoi 29 tool in contesto — *dopo il collegamento in Jérôme*
 - [ ] Se pesano troppo: wrapper in Pulso sulla Marketing API con system user token, con pochi tool sintetici
 
 ## Fase 4 – GEO: visibilità nelle risposte AI

@@ -55,7 +55,6 @@ function something()
 function configureGoogleAds(array $overrides = []): void
 {
     config(['services.google_ads' => array_merge(config('services.google_ads'), [
-        'developer_token' => 'dev-token',
         'login_customer_id' => '111-222-3333',
         'customer_id' => '444-555-6666',
         'client_id' => 'client-id',
