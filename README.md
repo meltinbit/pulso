@@ -372,6 +372,7 @@ class ReportAiCrawlers
                     'path' => $request->getRequestUri(),
                     'status' => $response->getStatusCode(),
                     'at' => now()->toIso8601String(),
+                    'ip' => $request->ip(),
                 ]],
             ]);
         } catch (\Throwable) {
@@ -381,7 +382,7 @@ class ReportAiCrawlers
 }
 ```
 
-Pages served directly by the web server or a cache (static files, full-page cache) never reach Laravel and are not reported. User agents are not verified against the vendors' IP ranges. `get-ai-crawlers` returns the visits per bot and page, errors served to crawlers, and new content pages no AI crawler has visited yet; data is kept for 400 days.
+Pages served directly by the web server or a cache (static files, full-page cache) never reach Laravel and are not reported. Pulso checks each visit against the IP ranges the vendors publish (Amazonbot by reverse DNS), so behind a proxy or load balancer configure `trustProxies` for `$request->ip()` to be the crawler's IP; visits from other IPs are counted as spoofed and left out of the totals. Meta and ByteDance publish no list, so their visits stay unverified. `get-ai-crawlers` returns the visits per bot and page, errors served to crawlers, and new content pages no AI crawler has visited yet; data is kept for 400 days.
 
 ## Testing
 

@@ -25,6 +25,8 @@ class AiCrawlerVisitFactory extends Factory
             'path' => $path,
             'path_hash' => sha1($path),
             'hits' => 1,
+            'verified_hits' => 0,
+            'spoofed_hits' => 0,
             'last_status' => 200,
             'last_seen_at' => now(),
         ];

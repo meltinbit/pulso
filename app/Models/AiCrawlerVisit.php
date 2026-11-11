@@ -28,6 +28,8 @@ class AiCrawlerVisit extends Model
         'path',
         'path_hash',
         'hits',
+        'verified_hits',
+        'spoofed_hits',
         'last_status',
         'last_seen_at',
     ];

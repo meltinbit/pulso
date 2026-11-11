@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('AI crawler visits to a property, reported by the site itself: GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User, Meta, Amazon, Common Crawl and others, each with its operator and category (training = model training data, search = index used for answers with sources, user = fetched live while a user asks). Returns per-bot totals, the daily trend by category, the most visited pages with their bots, pages served with errors to AI crawlers, and the pages of recent content annotations that no AI crawler has visited yet. Search and user visits matter most for GEO. Defaults to the last 30 days; user agents are not verified against the vendors\' IP ranges.')]
+#[Description('AI crawler visits to a property, reported by the site itself: GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User, Meta, Amazon, Common Crawl and others, each with its operator and category (training = model training data, search = index used for answers with sources, user = fetched live while a user asks). Returns per-bot totals, the daily trend by category, the most visited pages with their bots, pages served with errors to AI crawlers, and the pages of recent content annotations that no AI crawler has visited yet. Search and user visits matter most for GEO. Each visit is checked against the IP ranges the vendor publishes (Amazon by reverse DNS): verified = from the vendor, spoofed = a fake user agent from another IP, the rest could not be checked (vendor without a public list, such as Meta and ByteDance, or a site that does not send the IP). Spoofed visits are left out of every count unless include_spoofed is set. Defaults to the last 30 days.')]
 #[IsReadOnly]
 class GetAiCrawlersTool extends Tool
 {
@@ -30,6 +30,7 @@ class GetAiCrawlersTool extends Tool
             'bot' => 'nullable|string|max:40',
             'path' => 'nullable|string|max:1024',
             'limit' => 'nullable|integer|min:1|max:200',
+            'include_spoofed' => 'nullable|boolean',
         ]);
 
         $property = $this->resolveAuthorizedProperty($validated['property_id']);
@@ -45,7 +46,17 @@ class GetAiCrawlersTool extends Tool
             ->whereDate('date', '<=', $to->toDateString())
             ->when($validated['bot'] ?? null, fn ($query, string $bot) => $query->where('bot', $bot))
             ->when($validated['path'] ?? null, fn ($query, string $path) => $query->where('path', 'like', $this->pathPrefix($path).'%'))
-            ->get(['date', 'bot', 'path', 'hits', 'last_status', 'last_seen_at']);
+            ->get(['date', 'bot', 'path', 'hits', 'verified_hits', 'spoofed_hits', 'last_status', 'last_seen_at']);
+
+        $spoofed = $visits->sum('spoofed_hits');
+        $includeSpoofed = (bool) ($validated['include_spoofed'] ?? false);
+
+        if (! $includeSpoofed) {
+            $visits = $visits
+                ->each(fn (AiCrawlerVisit $visit) => $visit->hits -= $visit->spoofed_hits)
+                ->filter(fn (AiCrawlerVisit $visit): bool => $visit->hits > 0)
+                ->values();
+        }
 
         $limit = $validated['limit'] ?? 30;
 
@@ -55,19 +66,25 @@ class GetAiCrawlersTool extends Tool
             'to' => $to->toDateString(),
             'totals' => [
                 'hits' => $visits->sum('hits'),
+                'verified' => $visits->sum('verified_hits'),
+                'unverified' => $visits->sum('hits') - $visits->sum('verified_hits') - ($includeSpoofed ? $spoofed : 0),
+                'spoofed' => $spoofed,
+                'spoofed_included' => $includeSpoofed,
                 'pages' => $visits->pluck('path')->unique()->count(),
                 'by_category' => collect(AiCrawlers::CATEGORIES)->mapWithKeys(fn (string $category): array => [
                     $category => $visits->filter(fn (AiCrawlerVisit $visit): bool => $this->category($visit->bot) === $category)->sum('hits'),
                 ]),
             ],
             'bots' => [
-                'cols' => ['bot', 'operator', 'category', 'hits', 'pages', 'last_seen'],
+                'cols' => ['bot', 'operator', 'category', 'hits', 'verified', 'spoofed', 'pages', 'last_seen'],
                 'rows' => $visits->groupBy('bot')
                     ->map(fn (Collection $rows, string $bot): array => [
                         $bot,
                         AiCrawlers::BOTS[$bot]['operator'] ?? null,
                         $this->category($bot),
                         $rows->sum('hits'),
+                        $rows->sum('verified_hits'),
+                        $rows->sum('spoofed_hits'),
                         $rows->pluck('path')->unique()->count(),
                         $rows->max('last_seen_at')?->format('Y-m-d H:i'),
                     ])
@@ -138,6 +155,7 @@ class GetAiCrawlersTool extends Tool
             $visited = $property->aiCrawlerVisits()
                 ->where('path_hash', sha1($path))
                 ->whereDate('date', '>=', $published)
+                ->whereColumn('hits', '>', 'spoofed_hits')
                 ->exists();
 
             if (! $visited) {
@@ -175,6 +193,8 @@ class GetAiCrawlersTool extends Tool
                 ->description('Only pages under this path or URL, e.g. /blog/.'),
             'limit' => $schema->integer()
                 ->description('Rows of pages and errors to return. Defaults to 30, maximum 200.'),
+            'include_spoofed' => $schema->boolean()
+                ->description('Also count visits whose IP does not belong to the bot vendor. Defaults to false.'),
         ];
     }
 }

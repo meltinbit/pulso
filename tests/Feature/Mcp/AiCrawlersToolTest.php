@@ -36,8 +36,8 @@ it('summarises crawler visits by bot, category, day and page', function () {
 
     PulsoServer::tool(GetAiCrawlersTool::class, ['property_id' => $this->property->id])
         ->assertOk()
-        ->assertSee('"totals":{"hits":10,"pages":2,"by_category":{"training":3,"search":5,"user":2}}')
-        ->assertSee('["OAI-SearchBot","OpenAI","search",5,1,"2026-11-09 08:00"]')
+        ->assertSee('"totals":{"hits":10,"verified":0,"unverified":10,"spoofed":0,"spoofed_included":false,"pages":2,"by_category":{"training":3,"search":5,"user":2}}')
+        ->assertSee('["OAI-SearchBot","OpenAI","search",5,0,0,1,"2026-11-09 08:00"]')
         ->assertSee('["2026-11-10",3,0,2]')
         ->assertSee('["\/forfettario\/",7,["OAI-SearchBot","ChatGPT-User"]')
         ->assertSee('"errors":[{"path":"\/vecchia\/","status":404,"bots":["GPTBot"]}]')
@@ -50,4 +50,17 @@ it('explains how to connect a site without a token', function () {
 
     PulsoServer::tool(GetAiCrawlersTool::class, ['property_id' => $this->property->id])
         ->assertHasErrors(['Impostazioni → AI visibility']);
+});
+
+it('leaves spoofed visits out unless asked', function () {
+    AiCrawlerVisit::factory()->for($this->property, 'gaProperty')->create(['date' => '2026-11-10', 'bot' => 'GPTBot', 'path' => '/', 'path_hash' => sha1('/'), 'hits' => 5, 'verified_hits' => 3, 'spoofed_hits' => 2]);
+    AiCrawlerVisit::factory()->for($this->property, 'gaProperty')->create(['date' => '2026-11-10', 'bot' => 'ClaudeBot', 'path' => '/finta/', 'path_hash' => sha1('/finta/'), 'hits' => 4, 'spoofed_hits' => 4]);
+
+    PulsoServer::tool(GetAiCrawlersTool::class, ['property_id' => $this->property->id])
+        ->assertSee('"totals":{"hits":3,"verified":3,"unverified":0,"spoofed":6,"spoofed_included":false,"pages":1')
+        ->assertDontSee('finta');
+
+    PulsoServer::tool(GetAiCrawlersTool::class, ['property_id' => $this->property->id, 'include_spoofed' => true])
+        ->assertSee('"totals":{"hits":9,"verified":3,"unverified":0,"spoofed":6,"spoofed_included":true,"pages":2')
+        ->assertSee('finta');
 });
