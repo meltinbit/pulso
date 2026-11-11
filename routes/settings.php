@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/google', [GoogleSettingsController::class, 'edit'])->name('settings.google');
     Route::put('settings/google', [GoogleSettingsController::class, 'update'])->name('settings.google.update');
+    Route::put('settings/google/api-key', [GoogleSettingsController::class, 'updateApiKey'])->name('settings.google.api-key');
 
     Route::get('settings/bing', [BingSettingsController::class, 'edit'])->name('settings.bing');
     Route::put('settings/bing', [BingSettingsController::class, 'update'])->name('settings.bing.update');

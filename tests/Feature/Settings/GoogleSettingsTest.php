@@ -83,3 +83,21 @@ test('google credentials validation requires both fields', function () {
 
     $response->assertSessionHasErrors(['google_client_id', 'google_client_secret']);
 });
+
+test('the google api key can be saved encrypted and removed', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->put(route('settings.google.api-key'), ['google_api_key' => ' AIzaTestKey '])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect(app(SettingService::class)->get($user->id, 'google_api_key'))->toBe('AIzaTestKey')
+        ->and(AppSetting::where('key', 'google_api_key')->value('value'))->not->toBe('AIzaTestKey');
+
+    $this->actingAs($user)->get('/settings/google')
+        ->assertInertia(fn ($page) => $page->where('hasApiKey', true));
+
+    $this->actingAs($user)->put(route('settings.google.api-key'), ['google_api_key' => '']);
+
+    expect(app(SettingService::class)->get($user->id, 'google_api_key'))->toBeNull();
+});

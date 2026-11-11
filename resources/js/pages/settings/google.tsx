@@ -34,6 +34,7 @@ interface GoogleSettingsProps {
     };
     connections: GaConnection[];
     hasCredentials: boolean;
+    hasApiKey: boolean;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -43,7 +44,14 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function GoogleSettings({ settings, connections, hasCredentials }: GoogleSettingsProps) {
+export default function GoogleSettings({ settings, connections, hasCredentials, hasApiKey }: GoogleSettingsProps) {
+    const apiKeyForm = useForm({ google_api_key: '' });
+
+    const submitApiKey: FormEventHandler = (e) => {
+        e.preventDefault();
+        apiKeyForm.put(route('settings.google.api-key'), { preserveScroll: true, onSuccess: () => apiKeyForm.reset() });
+    };
+
     const { data, setData, put, errors, processing, recentlySuccessful } = useForm({
         google_client_id: settings.google_client_id,
         google_client_secret: '',
@@ -60,10 +68,7 @@ export default function GoogleSettings({ settings, connections, hasCredentials }
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall
-                        title="Google API Credentials"
-                        description="Configure your Google OAuth credentials for Analytics access"
-                    />
+                    <HeadingSmall title="Google API Credentials" description="Configure your Google OAuth credentials for Analytics access" />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-2">
@@ -113,6 +118,48 @@ export default function GoogleSettings({ settings, connections, hasCredentials }
 
                 <div className="space-y-6">
                     <HeadingSmall
+                        title="Google API key"
+                        description="Used for Core Web Vitals (Chrome UX Report API) and PageSpeed Insights. Create it in the Google Cloud project with both APIs enabled."
+                    />
+
+                    <form onSubmit={submitApiKey} className="space-y-4">
+                        <div className="grid gap-2">
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="google_api_key">API key</Label>
+                                <Badge variant={hasApiKey ? 'default' : 'secondary'}>{hasApiKey ? 'Saved' : 'Not set'}</Badge>
+                            </div>
+                            <Input
+                                id="google_api_key"
+                                type="password"
+                                autoComplete="off"
+                                className="mt-1 block w-full"
+                                value={apiKeyForm.data.google_api_key}
+                                onChange={(e) => apiKeyForm.setData('google_api_key', e.target.value)}
+                                placeholder={hasApiKey ? 'Leave blank and save to remove it' : 'AIza...'}
+                            />
+                            <InputError className="mt-2" message={apiKeyForm.errors.google_api_key} />
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <Button disabled={apiKeyForm.processing}>Save API key</Button>
+
+                            <Transition
+                                show={apiKeyForm.recentlySuccessful}
+                                enter="transition ease-in-out"
+                                enterFrom="opacity-0"
+                                leave="transition ease-in-out"
+                                leaveTo="opacity-0"
+                            >
+                                <p className="text-sm text-neutral-600">Saved</p>
+                            </Transition>
+                        </div>
+                    </form>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-6">
+                    <HeadingSmall
                         title="Google Accounts"
                         description="Each GA4 property uses the account it was added with. Add another account only if some sites are on a different Google login."
                     />
@@ -134,9 +181,8 @@ export default function GoogleSettings({ settings, connections, hasCredentials }
                                                     </Badge>
                                                 </div>
                                                 <p className="text-muted-foreground mt-1 text-sm">
-                                                    {connection.properties_count}{' '}
-                                                    {connection.properties_count === 1 ? 'property' : 'properties'} &middot; Last authorized{' '}
-                                                    {formatDate(connection.authorized_at ?? connection.created_at)}
+                                                    {connection.properties_count} {connection.properties_count === 1 ? 'property' : 'properties'}{' '}
+                                                    &middot; Last authorized {formatDate(connection.authorized_at ?? connection.created_at)}
                                                 </p>
                                             </div>
                                             <div className="flex shrink-0 items-center gap-3">
@@ -168,9 +214,7 @@ export default function GoogleSettings({ settings, connections, hasCredentials }
                             </Button>
                         </div>
                     ) : (
-                        <p className="text-muted-foreground text-sm">
-                            Save your Google API credentials above before connecting an account.
-                        </p>
+                        <p className="text-muted-foreground text-sm">Save your Google API credentials above before connecting an account.</p>
                     )}
                 </div>
             </SettingsLayout>

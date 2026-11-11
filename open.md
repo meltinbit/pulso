@@ -3,6 +3,7 @@
 ## Open questions
 - Fase 4, prompt tracking: Fabio deve creare una API key OpenAI (con credito) e salvarla in Impostazioni → AI visibility; poi gli agenti di Jérôme scrivono i prompt per sito con set-ai-visibility-prompts (11/11).
 - Fase 4, crawler AI: calcolato.it collegato e verificato in produzione (11/11, 67 visite il primo giorno); deve aggiungere `'ip' => $request->ip()` al middleware perché Pulso verifichi gli IP (trustProxies è già `*`). Da collegare anche meltinbit.com: Astro 6 con adapter node standalone ma pagine prerenderizzate, quindi serve un piccolo server Node davanti all'handler (11/11).
+- Fase 6: Fabio deve creare una API key nel progetto Google Cloud di Pulso, abilitare Chrome UX Report API e PageSpeed Insights API, e salvarla in Impostazioni → Google (serve a get-page-experience) (11/11).
 - Produzione: togliere GOOGLE_ADS_DEVELOPER_TOKEN dal .env di Coolify (non serve più) (11/11).
 - Jérôme: aggiungere ai prompt degli agenti la regola "chiama add-annotation di Pulso ogni volta che pubblichi o modifichi qualcosa su un sito" e il parametro &agent= negli URL dei connettori (11/11).
 - Deploy: add_verification_to_ai_crawler_visits_table va in produzione al prossimo deploy, insieme al codice che la usa (le migration precedenti sono già applicate: i crawler di calcolato.it arrivano in produzione) (11/11).

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Services\PageExperienceService;
 use App\Services\SettingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,7 @@ class GoogleSettingsController extends Controller
                 ->orderByDesc('id')
                 ->get(),
             'hasCredentials' => ! empty($googleSettings['google_client_id']) && ! empty($googleSettings['google_client_secret']),
+            'hasApiKey' => ! empty($googleSettings[PageExperienceService::API_KEY_SETTING]),
         ]);
     }
 
@@ -48,5 +50,22 @@ class GoogleSettingsController extends Controller
         $this->settings->set($userId, 'google_client_secret', $validated['google_client_secret'], 'google', encrypted: true);
 
         return back()->with('success', 'Credenziali Google salvate.');
+    }
+
+    /**
+     * API key of the Google Cloud project, used for the Chrome UX Report and
+     * PageSpeed Insights APIs. An empty value removes it.
+     */
+    public function updateApiKey(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'google_api_key' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $key = filled($validated['google_api_key'] ?? null) ? trim($validated['google_api_key']) : null;
+
+        $this->settings->set($request->user()->id, PageExperienceService::API_KEY_SETTING, $key, 'google', encrypted: true);
+
+        return back()->with('success', $key === null ? 'API key Google rimossa.' : 'API key Google salvata.');
     }
 }

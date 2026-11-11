@@ -116,10 +116,10 @@ In più: pagina admin **Annotations** per controllare le voci e cancellare quell
 
 ## Fase 6 – Salute tecnica e cannibalizzazione
 
-- [ ] Core Web Vitals reali dalla CrUX API e audit da PageSpeed Insights API
-- [ ] Controllo da sitemap: 404, canonical errati, pagine in sitemap ma non indicizzate — *parziale: `get-property-index-status` legge la sitemap e ispeziona fino a 50 URL (stato, motivo, canonical Google/utente); niente controllo HTTP 404*
-- [ ] Tool di cannibalizzazione — *assente, ma i dati ci sono già: `property_search_queries` salva query × pagina × giorno*
-- [ ] Mappa query↔pagina — *parziale: `get-property-search-queries` dà la pagina con più clic per ogni query*
+- [x] Core Web Vitals reali dalla CrUX API e audit da PageSpeed Insights API — *`get-page-experience`: p75 di LCP, INP, CLS, FCP e TTFB con giudizio, trend settimanale (CrUX History API), audit Lighthouse opzionale; API key Google in Impostazioni → Google (11/11)*
+- [x] Controllo da sitemap: 404, canonical errati, pagine in sitemap ma non indicizzate — *`check-sitemap-pages`: richiesta di ogni pagina senza seguire i redirect, 404/5xx, redirect, canonical altrove o mancante, noindex, pagine lente, pagine sane senza impressioni in 90 giorni; `get-property-index-status` conferma l'indicizzazione (11/11)*
+- [x] Tool di cannibalizzazione — *`get-query-page-map` (vista cannibalization): query con impressioni divise tra più pagine, quota per pagina, pagina principale (11/11)*
+- [x] Mappa query↔pagina — *`get-query-page-map` (vista pages): per ogni pagina le query principali, segnando quelle che hanno un'altra pagina come principale (11/11)*
 
 ## Principi di design dei tool MCP
 

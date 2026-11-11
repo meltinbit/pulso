@@ -276,6 +276,9 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `set-ai-visibility-prompts` | Manage the GEO prompts tracked per site and the brand terms that count as a mention |
 | `get-ai-visibility` | Share of ChatGPT answers citing the site over time, prompts gained or lost, cited pages, competitor domains, closest Bing query per prompt and Bing trend |
 | `get-ai-crawlers` | AI crawler visits reported by the site: per bot (training, search, user), per page, errors, new content not visited yet |
+| `get-query-page-map` | Keyword cannibalization (queries split between pages) and each page's top queries, from stored Search Console rows |
+| `check-sitemap-pages` | Requests the sitemap pages like a crawler: 404s, redirects, wrong or missing canonical, noindex, slow pages, pages without impressions |
+| `get-page-experience` | Real-user Core Web Vitals from the Chrome UX Report (p75, rating, weekly trend) and an optional PageSpeed Insights audit; needs a Google API key in Settings → Google |
 
 All tools support date ranges (`from`/`to`) for trend analysis over time where applicable. Trend tools also return the annotations of their range, so causes and effects come in one call; the **Annotations** page lists them and lets you delete wrong ones.
 
