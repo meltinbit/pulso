@@ -2,12 +2,13 @@
 
 ## Open questions
 - Fase 4, prompt tracking: Fabio deve creare una API key OpenAI (con credito) e salvarla in Impostazioni → AI visibility; poi gli agenti di Jérôme scrivono i prompt per sito con set-ai-visibility-prompts (11/11).
-- Fase 4, crawler AI: per ogni sito Laravel generare il token in Impostazioni → AI visibility e aggiungere il middleware ReportAiCrawlers (README); meltinbit.com (Astro) solo se gira in modalità server (11/11).
+- Fase 4, crawler AI: calcolato.it collegato e verificato in produzione (11/11, 67 visite il primo giorno). Restano gli altri siti Laravel (token in Impostazioni → AI visibility + middleware ReportAiCrawlers del README); meltinbit.com (Astro) solo se gira in modalità server (11/11).
 - Produzione: togliere GOOGLE_ADS_DEVELOPER_TOKEN dal .env di Coolify (non serve più) (11/11).
 - Jérôme: aggiungere ai prompt degli agenti la regola "chiama add-annotation di Pulso ogni volta che pubblichi o modifichi qualcosa su un sito" e il parametro &agent= negli URL dei connettori (11/11).
 - Deploy: le migration add_bing_tables, drop_funnel_tables e create_property_annotations, create_ai_visibility_tables e create_ai_crawler_visits_table vanno in produzione al prossimo deploy; drop_plan_fields e create_mcp_call_logs sono già applicate sul DB condiviso (11/11).
 
 ## Parked
+- P1: Fase 5 (Ads in scrittura con guardrail) rimandata da Fabio: oggi non ci sono campagne Google né Meta; prima di riprenderla serve decidere il meccanismo di approvazione via Telegram (bot di Jérôme o Pulso) (11/11).
 
 ## Assumptions
 - A7: Il DB 10.200.0.1/pulso_db è quello di produzione (dati reali, failed_jobs da /app); da locale si lavora su pulso_dev (MySQL 8 in Docker, container pulso-dev-mysql, porta 3307) e non si lanciano migration sul DB condiviso (11/11).

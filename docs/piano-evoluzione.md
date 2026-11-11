@@ -104,6 +104,8 @@ In più: pagina admin **Annotations** per controllare le voci e cancellare quell
 
 ## Fase 5 – Ads in scrittura, con guardrail
 
+*Rimandata (11/11): oggi non ci sono campagne attive; da riprendere quando servirà, partendo dal meccanismo di approvazione via Telegram.*
+
 - [ ] Ogni campagna, gruppo o annuncio creato nasce in pausa
 - [ ] Attivazione solo con mia approvazione tramite il bot Telegram di Jérôme — *Pulso oggi invia solo messaggi Telegram, non ne riceve*
 - [ ] Tetto di budget giornaliero e mensile per account
