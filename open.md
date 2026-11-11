@@ -1,8 +1,8 @@
 # Open
 
 ## Open questions
-- Fase 3 (parte Google) completata: Fabio deve rivederla e provare i tool Ads con gli account reali prima della Fase 4 (11/11).
-- Meta: collegare l'MCP ufficiale mcp.facebook.com/ads all'agente ads di Jérôme e misurare i token dei suoi tool; wrapper in Pulso solo se pesano troppo (11/11).
+- Fase 3 completata (Google e Meta): Fabio deve rivederla e provare i tool Ads con gli account reali prima della Fase 4 (11/11).
+- Meta: creare in Business Manager l'utente di sistema con ads_read sugli account pubblicitari, salvare il token in Impostazioni → Meta e provare i 4 tool Meta (11/11).
 - Produzione: togliere GOOGLE_ADS_DEVELOPER_TOKEN dal .env di Coolify (non serve più) (11/11).
 - Jérôme: aggiungere ai prompt degli agenti la regola "chiama add-annotation di Pulso ogni volta che pubblichi o modifichi qualcosa su un sito" e il parametro &agent= negli URL dei connettori (11/11).
 - Deploy: le migration add_bing_tables, drop_funnel_tables e create_property_annotations vanno in produzione al prossimo deploy; drop_plan_fields e create_mcp_call_logs sono già applicate sul DB condiviso (11/11).

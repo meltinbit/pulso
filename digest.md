@@ -9,3 +9,4 @@
 - 2026-11-11 · Fase 2 del piano di evoluzione: registro modifiche (tabella property_annotations, tool add-annotation e list-annotations, annotazioni nei tool di trend, pagina admin Annotations) · none · regola nei prompt degli agenti Jérôme
 - 2026-11-11 · Fase 3 del piano di evoluzione (Google): client Ads senza developer token, tool list-ads-accounts, get-ads-campaigns, get-ads-search-terms, get-paid-organic-gap · none · revisione di Fabio, prova Meta MCP in Jérôme
 - 2026-11-11 · Fase 3, correzioni dopo la prova reale: gap pagato/organico filtrato per dominio della property, parametro site in get-ads-search-terms, valuta letta dall'account se non ci sono campagne · none · revisione di Fabio, poi Fase 4
+- 2026-11-11 · Fase 3, Meta Ads in Pulso (D5): MetaAdsService sulla Marketing API v27.0, tool list-meta-ad-accounts, get-meta-campaigns, get-meta-ads, get-meta-breakdown, Impostazioni → Meta, stato nella pagina Health · none · token Meta da creare e prova reale

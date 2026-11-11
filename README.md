@@ -2,7 +2,7 @@
 
 ![Pulso](public/pulso.png)
 
-Single-user MCP connector for SEO, GEO and Ads analysis, with a minimal admin panel. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4. Collects daily GA4 snapshots with trend analysis, Google Search Console, Bing Webmaster Tools and AdSense data, Keyword Planner research and live URL index inspection, and exposes them to AI agents through an MCP server. The admin panel shows connection health, the MCP call log and the raw data.
+Single-user MCP connector for SEO, GEO and Ads analysis, with a minimal admin panel. Built with Laravel 12, Inertia.js v2, React 19, shadcn/ui, and Tailwind CSS v4. Collects daily GA4 snapshots with trend analysis, Google Search Console, Bing Webmaster Tools and AdSense data, Google Ads and Meta Ads reports, Keyword Planner research and live URL index inspection, and exposes them to AI agents through an MCP server. The admin panel shows connection health, the MCP call log and the raw data.
 
 ## Requirements
 
@@ -271,6 +271,8 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `get-keyword-ideas` / `get-keyword-metrics` / `get-keyword-gap` / `search-geo-targets` | Google Ads Keyword Planner research (see `docs/google-ads-keywords.md`) |
 | `list-ads-accounts` / `get-ads-campaigns` / `get-ads-search-terms` | Google Ads reporting (read only): accounts, campaign performance with CPA/ROAS, search terms |
 | `get-paid-organic-gap` | Paid search terms that convert but have no strong organic page in Search Console |
+| `list-meta-ad-accounts` / `get-meta-campaigns` | Meta (Facebook/Instagram) ad accounts and campaign performance with reach, frequency, CPA/ROAS and the previous period |
+| `get-meta-ads` / `get-meta-breakdown` | Meta ads or ad sets compared, and results by age, gender, country, region, placement or device |
 
 All tools support date ranges (`from`/`to`) for trend analysis over time where applicable. Trend tools also return the annotations of their range, so causes and effects come in one call; the **Annotations** page lists them and lets you delete wrong ones.
 
@@ -298,6 +300,17 @@ All tools are read-only except `add-annotation` and `submit-urls-to-bing`.
 ### Bing Webmaster Tools
 
 Save the API key (Bing Webmaster Tools → Settings → API access) in **Settings > Bing**. Properties are linked to the verified Bing site with the same domain; the link can be changed on the same page. Data is synced every day at 06:00, or with `php artisan pulso:sync-bing`. See `docs/bing-webmaster.md`.
+
+### Meta Ads
+
+Read-only access through the Marketing API (version in `META_ADS_API_VERSION`, default `v27.0`).
+
+1. In Meta Business Manager → Business settings → Users → System users, create a system user (an employee role is enough).
+2. Assign it the ad accounts to read (Assign assets → Ad accounts → View performance).
+3. Add your Meta app to the system user and generate a token with the `ads_read` permission. A token that never expires avoids monthly renewals; a 60-day one is safer but must be replaced in time.
+4. Save it in **Settings > Meta**: Pulso checks it, lists the ad accounts and lets you choose the default one used by the MCP tools.
+
+If the token stops working the Health page says so. Conversions are one Meta action type (purchase, registration, lead, app install...): the tools pick the most meaningful one the account has and the agent can pass `conversion_action` to choose another.
 
 ## Testing
 

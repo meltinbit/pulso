@@ -41,6 +41,10 @@ return [
         'redirect' => '',
     ],
 
+    'meta_ads' => [
+        'api_version' => env('META_ADS_API_VERSION', 'v27.0'),
+    ],
+
     'google_ads' => [
         'login_customer_id' => env('GOOGLE_ADS_LOGIN_CUSTOMER_ID'),
         'customer_id' => env('GOOGLE_ADS_CUSTOMER_ID'),

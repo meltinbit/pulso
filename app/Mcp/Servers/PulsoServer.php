@@ -8,6 +8,9 @@ use App\Mcp\Tools\GetAdsSearchTermsTool;
 use App\Mcp\Tools\GetKeywordGapTool;
 use App\Mcp\Tools\GetKeywordIdeasTool;
 use App\Mcp\Tools\GetKeywordMetricsTool;
+use App\Mcp\Tools\GetMetaAdsTool;
+use App\Mcp\Tools\GetMetaBreakdownTool;
+use App\Mcp\Tools\GetMetaCampaignsTool;
 use App\Mcp\Tools\GetPaidOrganicGapTool;
 use App\Mcp\Tools\GetPropertyAdSenseTool;
 use App\Mcp\Tools\GetPropertyBingSearchTool;
@@ -22,6 +25,7 @@ use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
 use App\Mcp\Tools\ListAdsAccountsTool;
 use App\Mcp\Tools\ListAnnotationsTool;
+use App\Mcp\Tools\ListMetaAdAccountsTool;
 use App\Mcp\Tools\ListPropertiesTool;
 use App\Mcp\Tools\SearchGeoTargetsTool;
 use App\Mcp\Tools\SubmitUrlsToBingTool;
@@ -44,7 +48,9 @@ Bing Webmaster Tools: get-property-bing-search returns Bing queries or pages (we
 
 Keyword research (Google Ads Keyword Planner): use get-keyword-ideas for ideas from seeds or a URL, get-keyword-metrics to check specific keywords with 12 monthly volumes, and get-keyword-gap to see which ideas the property already ranks for in Search Console (last 90 days) and which are missing. Use search-geo-targets to resolve a place (e.g. a province vs a city) to a geo target ID. Defaults are Italian and Italy. Volumes are Google approximations, results are cached for 30 days, and keyword output is columnar (cols + rows) to save tokens.
 
-Google Ads (read only): list-ads-accounts lists the accounts, get-ads-campaigns returns campaign cost, conversions, CPA and ROAS with the previous period, get-ads-search-terms returns the real queries behind the ads (spend without conversions included, Performance Max excluded), and get-paid-organic-gap crosses the converting search terms with Search Console to find queries that convert in Ads but have no strong organic page. Ads tools default to complete days (up to yesterday) and amounts are in the account currency.')]
+Google Ads (read only): list-ads-accounts lists the accounts, get-ads-campaigns returns campaign cost, conversions, CPA and ROAS with the previous period, get-ads-search-terms returns the real queries behind the ads (spend without conversions included, Performance Max excluded), and get-paid-organic-gap crosses the converting search terms with Search Console to find queries that convert in Ads but have no strong organic page (only ad groups landing on the property domain; get-ads-search-terms takes the same filter as site). Ads tools default to complete days (up to yesterday) and amounts are in the account currency.
+
+Meta Ads, Facebook and Instagram (read only): list-meta-ad-accounts lists the ad accounts, get-meta-campaigns returns campaign cost, reach, frequency, link clicks, conversions, CPA and ROAS with the previous period, get-meta-ads compares ads or ad sets, and get-meta-breakdown splits results by age, gender, country, region, placement or device. Conversions are one Meta action type: the tools pick the most meaningful one the account has (purchase, registration, lead, app install...) and say which; pass conversion_action to choose another from available_actions. Same field names as the Google Ads tools, so the two platforms can be compared directly.')]
 class PulsoServer extends Server
 {
     protected array $tools = [
@@ -71,5 +77,9 @@ class PulsoServer extends Server
         GetAdsCampaignsTool::class,
         GetAdsSearchTermsTool::class,
         GetPaidOrganicGapTool::class,
+        ListMetaAdAccountsTool::class,
+        GetMetaCampaignsTool::class,
+        GetMetaAdsTool::class,
+        GetMetaBreakdownTool::class,
     ];
 }

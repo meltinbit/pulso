@@ -20,6 +20,7 @@ interface Health {
         issues: string[];
     }[];
     bing: { has_key: boolean; key_invalid: boolean; issue: string | null };
+    meta: { has_token: boolean; token_invalid: boolean; issue: string | null };
     google_ads: { configured: boolean; missing: string[]; operations_today: number; daily_limit: number };
     mcp: { has_token: boolean; last_used_at: string | null; calls_24h: number; errors_24h: number };
     failed_jobs: { count_7d: number; latest: { job: string; failed_at: string; error: string } | null };
@@ -84,6 +85,14 @@ export default function HealthPage({ health }: { health: Health }) {
                                 {health.bing.issue}{' '}
                                 <Link href="/settings/bing" className="underline">
                                     Open Bing settings
+                                </Link>
+                            </Issue>
+                        )}
+                        {health.meta.issue && (
+                            <Issue>
+                                {health.meta.issue}{' '}
+                                <Link href="/settings/meta" className="underline">
+                                    Open Meta settings
                                 </Link>
                             </Issue>
                         )}

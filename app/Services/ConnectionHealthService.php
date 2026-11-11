@@ -38,6 +38,7 @@ class ConnectionHealthService
      *     connections: list<array{id: int, email: string, status: string, authorized_at: ?string, issue: ?string}>,
      *     properties: list<array{id: int, name: string, website_url: ?string, last_snapshot: ?string, last_search_console: ?string, last_adsense: ?string, last_bing: ?string, issues: list<string>}>,
      *     bing: array{has_key: bool, key_invalid: bool, issue: ?string},
+     *     meta: array{has_token: bool, token_invalid: bool, issue: ?string},
      *     google_ads: array{configured: bool, missing: list<string>, operations_today: int, daily_limit: int},
      *     mcp: array{has_token: bool, last_used_at: ?string, calls_24h: int, errors_24h: int},
      *     failed_jobs: array{count_7d: int, latest: ?array{job: string, failed_at: string, error: string}},
@@ -47,6 +48,7 @@ class ConnectionHealthService
     public function report(User $user): array
     {
         $bing = $this->bing($user);
+        $meta = $this->meta($user);
 
         $connections = $user->gaConnections()->orderBy('google_email')->get()
             ->map(fn (GaConnection $connection): array => $this->connection($connection))
@@ -76,6 +78,7 @@ class ConnectionHealthService
 
         $issuesCount = collect($connections)->whereNotNull('issue')->count()
             + ($bing['issue'] === null ? 0 : 1)
+            + ($meta['issue'] === null ? 0 : 1)
             + collect($properties)->sum(fn (array $property): int => count($property['issues']))
             + ($googleAds['configured'] ? 0 : 1)
             + ($googleAds['operations_today'] >= $googleAds['daily_limit'] ? 1 : 0)
@@ -85,6 +88,7 @@ class ConnectionHealthService
             'connections' => $connections,
             'properties' => $properties,
             'bing' => $bing,
+            'meta' => $meta,
             'google_ads' => $googleAds,
             'mcp' => $this->mcp($user),
             'failed_jobs' => $failedJobs,
@@ -178,6 +182,25 @@ class ConnectionHealthService
             'issue' => match (true) {
                 ! $hasKey => 'API key Bing non impostata: salvala in Impostazioni → Bing.',
                 $invalid => 'La API key Bing non è più valida: generane una nuova e salvala in Impostazioni → Bing.',
+                default => null,
+            },
+        ];
+    }
+
+    /**
+     * @return array{has_token: bool, token_invalid: bool, issue: ?string}
+     */
+    private function meta(User $user): array
+    {
+        $hasToken = filled($this->settings->get($user->id, MetaAdsService::SETTING_KEY));
+        $invalid = $hasToken && $this->settings->get($user->id, MetaAdsService::INVALID_SETTING_KEY) === '1';
+
+        return [
+            'has_token' => $hasToken,
+            'token_invalid' => $invalid,
+            'issue' => match (true) {
+                ! $hasToken => 'Token Meta Ads non impostato: salvalo in Impostazioni → Meta.',
+                $invalid => 'Il token Meta Ads non è più valido: generane uno nuovo per l\'utente di sistema e salvalo in Impostazioni → Meta.',
                 default => null,
             },
         ];

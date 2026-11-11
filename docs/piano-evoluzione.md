@@ -81,9 +81,9 @@ In più: pagina admin **Annotations** per controllare le voci e cancellare quell
 
 **Meta**
 
-- [ ] Provare subito l'MCP ufficiale (mcp.facebook.com/ads) solo sull'agente ads di Jérôme — *fuori da questo repo: va collegato in Jérôme*
-- [ ] Misurare quanti token costano i suoi 29 tool in contesto — *dopo il collegamento in Jérôme*
-- [ ] Se pesano troppo: wrapper in Pulso sulla Marketing API con system user token, con pochi tool sintetici
+- [x] ~~Provare subito l'MCP ufficiale (mcp.facebook.com/ads) solo sull'agente ads di Jérôme~~ — *superato: Fabio vuole Pulso come unico punto di connessione (11/11)*
+- [x] ~~Misurare quanti token costano i suoi 29 tool in contesto~~ — *non serve più, vedi sopra*
+- [x] Wrapper in Pulso sulla Marketing API (v27.0) con system user token, con pochi tool sintetici — *`list-meta-ad-accounts`, `get-meta-campaigns`, `get-meta-ads`, `get-meta-breakdown`; token cifrato in Impostazioni → Meta, stato nella pagina Health*
 
 ## Fase 4 – GEO: visibilità nelle risposte AI
 

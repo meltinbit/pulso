@@ -3,6 +3,7 @@
 use App\Http\Controllers\Settings\BingSettingsController;
 use App\Http\Controllers\Settings\GoogleSettingsController;
 use App\Http\Controllers\Settings\McpSettingsController;
+use App\Http\Controllers\Settings\MetaSettingsController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SnapshotSettingsController;
@@ -31,6 +32,10 @@ Route::middleware('auth')->group(function () {
     Route::put('settings/bing', [BingSettingsController::class, 'update'])->name('settings.bing.update');
     Route::put('settings/bing/properties/{property}', [BingSettingsController::class, 'updateProperty'])->name('settings.bing.property');
     Route::post('settings/bing/sync', [BingSettingsController::class, 'sync'])->name('settings.bing.sync');
+
+    Route::get('settings/meta', [MetaSettingsController::class, 'edit'])->name('settings.meta');
+    Route::put('settings/meta', [MetaSettingsController::class, 'update'])->name('settings.meta.update');
+    Route::put('settings/meta/account', [MetaSettingsController::class, 'updateDefaultAccount'])->name('settings.meta.account');
 
     Route::get('settings/mcp', [McpSettingsController::class, 'edit'])->name('settings.mcp');
     Route::post('settings/mcp', [McpSettingsController::class, 'store'])->name('settings.mcp.store');
