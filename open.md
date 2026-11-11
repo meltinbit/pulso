@@ -1,6 +1,9 @@
 # Open
 
 ## Open questions
+- Piano di evoluzione: Fabio deve rivedere la gap analysis della Fase 0 (docs/piano-evoluzione.md) prima della Fase 1 (11/11).
+- Bing key in .env (nuovo piano) contro D1 (key per utente in app_settings): quale vale? (11/11)
+- Funnel: il piano dice "resta il tool MCP", ma non esiste; crearlo prima di togliere la UI o abbandonare i funnel? (11/11)
 - Bing: nella fase 1 serve anche una pagina/card nell'app web, o bastano impostazioni + MCP? (docs/bing-webmaster.md, fase 3)
 
 ## Parked
@@ -14,4 +17,5 @@
 - A6: Righe Search Console salvate per giorno (fino a 16 mesi) invece di una top list troncata — commit 98ecee4 (02/11).
 
 ## Backlog
+- B2: 10 test rossi preesistenti (GaConnectionFactory::active(), actingAs() mancante, recupero snapshot) — da sistemare a inizio Fase 1 (11/11).
 - B1: Integrazione Bing Webmaster Tools — piano e verifiche API in docs/bing-webmaster.md; prima ricontrollare i dati di calcolato.it, ancora in elaborazione su Bing (10/11).

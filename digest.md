@@ -4,3 +4,4 @@
 - 2026-11-09 · Filtri pagina/prefisso URL, 'la ricerca contiene' e limit (fino a 500) in get-property-search-queries · none · —
 - 2026-11-09 · PROJECT.md scritto e confermato da Fabio · none · —
 - 2026-11-10 · Ricerca e verifica API Bing Webmaster Tools con key reale; piano in docs/bing-webmaster.md · none · fase 1 da avviare
+- 2026-11-11 · Fase 0 del piano di evoluzione (headless/MCP): audit e gap analysis in docs/piano-evoluzione.md, nessuna modifica al codice · none · revisione di Fabio, poi Fase 1
