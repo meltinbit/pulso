@@ -6,6 +6,7 @@
 - Fase 6: Fabio deve creare una API key nel progetto Google Cloud di Pulso, abilitare Chrome UX Report API e PageSpeed Insights API, e salvarla in Impostazioni → Google (serve a get-page-experience) (11/11).
 - Produzione: togliere GOOGLE_ADS_DEVELOPER_TOKEN dal .env di Coolify (non serve più) (11/11).
 - Jérôme: aggiungere ai prompt degli agenti la regola "chiama add-annotation di Pulso ogni volta che pubblichi o modifichi qualcosa su un sito" e il parametro &agent= negli URL dei connettori (11/11).
+- Mobile: dopo il deploy, controllare sul telefono che nessuna pagina scrolli più in orizzontale (dashboard, report, keywords, AdSense, impostazioni); la correzione non è stata provata con dati reali (12/11).
 
 ## Parked
 - P1: Fase 5 (Ads in scrittura con guardrail) rimandata da Fabio: oggi non ci sono campagne Google né Meta; prima di riprenderla serve decidere il meccanismo di approvazione via Telegram (bot di Jérôme o Pulso) (11/11).
