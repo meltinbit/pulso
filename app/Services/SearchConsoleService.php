@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\SearchConsoleApiException;
+use App\Models\GaConnection;
 use App\Models\GaProperty;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -201,7 +202,18 @@ class SearchConsoleService
      */
     public function listSites(GaProperty $property): array
     {
-        $token = $this->tokenService->getFreshToken($property->gaConnection);
+        return $this->listSitesForConnection($property->gaConnection);
+    }
+
+    /**
+     * Search Console sites the Google account can read; unverified entries are
+     * left out because their data is not accessible.
+     *
+     * @return array<int, string>
+     */
+    public function listSitesForConnection(GaConnection $connection): array
+    {
+        $token = $this->tokenService->getFreshToken($connection);
 
         $response = Http::withToken($token)
             ->timeout(15)
@@ -212,8 +224,23 @@ class SearchConsoleService
         }
 
         return collect($response->json('siteEntry', []))
+            ->reject(fn (array $site): bool => ($site['permissionLevel'] ?? null) === 'siteUnverifiedUser')
             ->pluck('siteUrl')
+            ->values()
             ->all();
+    }
+
+    /**
+     * The website URL of a Search Console site: https://host for a Domain
+     * property, the prefix without the trailing slash for a URL-prefix one.
+     */
+    public static function websiteUrlFor(string $siteUrl): string
+    {
+        if (str_starts_with($siteUrl, 'sc-domain:')) {
+            return 'https://'.substr($siteUrl, strlen('sc-domain:'));
+        }
+
+        return rtrim($siteUrl, '/');
     }
 
     /**
@@ -224,6 +251,10 @@ class SearchConsoleService
      */
     private function resolveSiteUrl(GaProperty $property): ?string
     {
+        if ($property->gsc_site_url) {
+            return urlencode($property->gsc_site_url);
+        }
+
         $websiteUrl = $property->website_url;
 
         if (! $websiteUrl) {

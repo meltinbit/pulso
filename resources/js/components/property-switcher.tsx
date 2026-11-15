@@ -7,7 +7,7 @@ import { usePropertySwitch } from './property-switch-provider';
 interface GaPropertyItem {
     id: number;
     display_name: string;
-    property_id: string;
+    property_id: string | null;
 }
 
 interface PageProps {

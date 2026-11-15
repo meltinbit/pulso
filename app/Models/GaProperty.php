@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\GaPropertyFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,7 @@ class GaProperty extends Model
         'property_id',
         'display_name',
         'website_url',
+        'gsc_site_url',
         'bing_site_url',
         'ai_brand_terms',
         'timezone',
@@ -45,6 +47,23 @@ class GaProperty extends Model
         'currency' => 'EUR',
         'is_active' => true,
     ];
+
+    /**
+     * Whether the property is backed by a GA4 property. Search Console only
+     * properties have no GA4 data: no snapshots, events or funnels.
+     */
+    public function hasAnalytics(): bool
+    {
+        return $this->property_id !== null;
+    }
+
+    /**
+     * @param  Builder<GaProperty>  $query
+     */
+    public function scopeWithAnalytics(Builder $query): void
+    {
+        $query->whereNotNull('property_id');
+    }
 
     public function user(): BelongsTo
     {

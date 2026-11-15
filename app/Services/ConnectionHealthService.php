@@ -124,7 +124,7 @@ class ConnectionHealthService
     }
 
     /**
-     * @return array{id: int, name: string, website_url: ?string, last_snapshot: ?string, last_search_console: ?string, last_adsense: ?string, issues: list<string>}
+     * @return array{id: int, name: string, website_url: ?string, has_analytics: bool, last_snapshot: ?string, last_search_console: ?string, last_adsense: ?string, issues: list<string>}
      */
     private function property(GaProperty $property, bool $hasBingKey): array
     {
@@ -139,7 +139,9 @@ class ConnectionHealthService
             $issues[] = 'Manca l\'URL del sito: senza, Search Console e AdSense non si abbinano (Proprietà).';
         }
 
-        if ($lastSnapshot === null) {
+        if (! $property->hasAnalytics()) {
+            // Search Console only: no GA4 snapshots to expect.
+        } elseif ($lastSnapshot === null) {
             $issues[] = 'Nessuno snapshot GA4: generane uno da Snapshots o controlla la connessione Google.';
         } elseif ($this->olderThan($lastSnapshot, self::SNAPSHOT_STALE_DAYS)) {
             $issues[] = "Ultimo snapshot GA4 del {$lastSnapshot}: lo scheduler o la connessione Google non funzionano.";
@@ -165,6 +167,7 @@ class ConnectionHealthService
             'id' => $property->id,
             'name' => $property->display_name,
             'website_url' => $property->website_url,
+            'has_analytics' => $property->hasAnalytics(),
             'last_snapshot' => $lastSnapshot,
             'last_search_console' => $lastSearchConsole,
             'last_adsense' => $lastAdsense,

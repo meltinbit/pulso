@@ -31,6 +31,18 @@ class GaPropertyFactory extends Factory
         ];
     }
 
+    /**
+     * A Search Console site without a GA4 property.
+     */
+    public function searchConsoleOnly(string $siteUrl = 'sc-domain:example.com'): static
+    {
+        return $this->state(fn () => [
+            'property_id' => null,
+            'gsc_site_url' => $siteUrl,
+            'website_url' => 'https://example.com',
+        ]);
+    }
+
     public function active(): static
     {
         return $this->state(fn () => [

@@ -30,6 +30,18 @@ class GetPropertySummaryTool extends Tool
         $property = $this->resolveAuthorizedProperty($validated['property_id']);
         $latest = $property->snapshots()->latest('snapshot_date')->first();
 
+        if (! $latest && ! $property->hasAnalytics()) {
+            return Response::text(json_encode([
+                'property' => $property->display_name,
+                'website_url' => $property->website_url,
+                'source' => 'search_console_only',
+                'message' => 'Search Console only property: no GA4 snapshots, sources, pages or events. Use the Search Console, Bing and index tools.',
+                'annotations_30d' => $this->annotationsBetween($property, now()->subDays(30), now()),
+                'top_search_queries' => $this->getLatestSearchQueries($property),
+                'bing' => $this->bingSummary($property),
+            ], JSON_PRETTY_PRINT));
+        }
+
         if (! $latest) {
             return Response::text(json_encode([
                 'property' => $property->display_name,

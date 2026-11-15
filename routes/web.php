@@ -40,6 +40,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
     Route::post('properties', [PropertyController::class, 'store'])->name('properties.store');
+    Route::post('properties/search-console', [PropertyController::class, 'storeSearchConsole'])->name('properties.store-search-console');
     Route::put('properties/{property}', [PropertyController::class, 'update'])->name('properties.update');
     Route::delete('properties/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
     Route::post('properties/switch', [PropertyController::class, 'switch'])->name('properties.switch');

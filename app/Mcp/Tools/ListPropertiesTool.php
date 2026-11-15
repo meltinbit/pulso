@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('List all GA4 properties with their latest snapshot trend and score. Use this to get an overview of all monitored websites.')]
+#[Description('List all monitored websites with their latest GA4 snapshot trend and score. A property with has_analytics false is a Search Console only site: it has Search Console, Bing, index and annotation data but no GA4 snapshots, sources, pages, events or funnels.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class ListPropertiesTool extends Tool
@@ -34,6 +34,8 @@ class ListPropertiesTool extends Tool
             return [
                 'id' => $property->id,
                 'property_id' => $property->property_id,
+                'has_analytics' => $property->hasAnalytics(),
+                'search_console_site' => $property->gsc_site_url,
                 'display_name' => $property->display_name,
                 'website_url' => $property->website_url,
                 'timezone' => $property->timezone,

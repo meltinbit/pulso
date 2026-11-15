@@ -113,6 +113,10 @@ class GaClientService
      */
     private function remember(GaProperty $property, string $key, string $type, callable $fn): array
     {
+        if (! $property->hasAnalytics()) {
+            throw new GaApiException("{$property->display_name} è solo su Search Console: non ha dati Google Analytics.");
+        }
+
         $cached = AnalyticsCache::where([
             'ga_property_id' => $property->id,
             'cache_key' => $key,

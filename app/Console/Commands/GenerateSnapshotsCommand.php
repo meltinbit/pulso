@@ -24,14 +24,15 @@ class GenerateSnapshotsCommand extends Command
     {
         // Check if auto-backfill is enabled
         $autoBackfill = $this->option('auto-backfill');
-        
+
         // Determine the date range
         $fromOption = $this->option('from');
         $toOption = $this->option('to');
         $defaultDate = Carbon::yesterday();
-        
+
         // Get active properties
         $query = GaProperty::where('is_active', true)
+            ->withAnalytics()
             ->whereHas('gaConnection', fn ($q) => $q->where('is_active', true))
             ->with('gaConnection');
 
@@ -43,26 +44,28 @@ class GenerateSnapshotsCommand extends Command
 
         if ($properties->isEmpty()) {
             $this->warn('No active properties found.');
+
             return self::SUCCESS;
         }
-        
+
         // Handle different modes: manual date range or auto-backfill
-        if (!$autoBackfill) {
+        if (! $autoBackfill) {
             // Manual date range mode
             $from = $fromOption ? Carbon::parse($fromOption) : $defaultDate;
             $to = $toOption ? Carbon::parse($toOption) : $from->copy();
-            
+
             if ($to->lt($from)) {
                 $this->error('--to must be after or equal to --from.');
+
                 return self::FAILURE;
             }
-            
+
             $days = $from->diffInDays($to) + 1;
             $this->info("Generating snapshots from {$from->toDateString()} to {$to->toDateString()} ({$days} days, {$properties->count()} properties)...");
         } else {
             // Auto-backfill mode - analyze each property for missing snapshots
             $this->info("Auto-backfill enabled. Checking for missing snapshots for {$properties->count()} properties...");
-            
+
             // If specific dates were provided with auto-backfill, warn the user
             if ($fromOption || $toOption) {
                 $this->warn('Note: --auto-backfill will override --from and --to options, finding missing dates automatically.');
@@ -77,16 +80,17 @@ class GenerateSnapshotsCommand extends Command
             if ($autoBackfill) {
                 // Auto-backfill mode: Find the last snapshot and fill the gap
                 $latestSnapshot = $property->snapshots()->latest('snapshot_date')->first();
-                
+
                 if ($latestSnapshot) {
                     $from = Carbon::parse($latestSnapshot->snapshot_date)->addDay();
                     $to = $defaultDate;
-                    
+
                     if ($from->isAfter($to)) {
                         $this->line("  {$property->display_name}: No missing snapshots to generate.");
+
                         continue;
                     }
-                    
+
                     $this->info("  {$property->display_name}: Generating missing snapshots from {$from->toDateString()} to {$to->toDateString()}");
                 } else {
                     // No snapshots exist, create from 30 days ago to yesterday (limit the backfill)
@@ -95,7 +99,7 @@ class GenerateSnapshotsCommand extends Command
                     $this->info("  {$property->display_name}: No previous snapshots. Generating for last 30 days");
                 }
             }
-            
+
             // Generate snapshots for the date range
             for ($date = $from->copy(); $date->lte($to); $date->addDay()) {
                 try {
@@ -113,7 +117,7 @@ class GenerateSnapshotsCommand extends Command
         if ($totalGenerated > 0 && ! $this->option('no-telegram')) {
             // For auto-backfill or manual mode, we only want to send the telegram message for the most recent day
             $lastDay = $autoBackfill ? Carbon::yesterday() : $to;
-            
+
             $lastDaySnapshots = $properties->map(
                 fn ($p) => $p->snapshots()->where('snapshot_date', $lastDay->toDateString())->first()
             )->filter();

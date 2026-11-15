@@ -13,6 +13,7 @@ interface Health {
         id: number;
         name: string;
         website_url: string | null;
+        has_analytics: boolean;
         last_snapshot: string | null;
         last_search_console: string | null;
         last_adsense: string | null;
@@ -148,7 +149,7 @@ export default function HealthPage({ health }: { health: Health }) {
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell>{property.last_snapshot ?? '–'}</TableCell>
+                                            <TableCell>{property.has_analytics ? (property.last_snapshot ?? '–') : 'solo Search Console'}</TableCell>
                                             <TableCell>{property.last_search_console ?? '–'}</TableCell>
                                             <TableCell>{property.last_adsense ?? '–'}</TableCell>
                                             <TableCell>{property.last_bing ?? '–'}</TableCell>

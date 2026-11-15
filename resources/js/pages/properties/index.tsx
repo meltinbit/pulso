@@ -21,9 +21,18 @@ interface AvailableProperty {
     connection_email: string;
 }
 
+interface AvailableSite {
+    site_url: string;
+    website_url: string;
+    ga_connection_id: number;
+    connection_email: string;
+    covered_by: string | null;
+}
+
 interface SavedProperty {
     id: number;
-    property_id: string;
+    property_id: string | null;
+    gsc_site_url: string | null;
     display_name: string;
     website_url: string | null;
     timezone: string;
@@ -36,6 +45,7 @@ interface SavedProperty {
 
 interface PropertiesPageProps {
     available: AvailableProperty[];
+    availableSites: AvailableSite[];
     saved: SavedProperty[];
     connections: { id: number; google_email: string; google_name: string | null }[];
     flash?: { success?: string; error?: string };
@@ -49,15 +59,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-function MonitoredPropertyCard({
-    property,
-    index,
-    onRemove,
-}: {
-    property: SavedProperty;
-    index: number;
-    onRemove: (id: number) => void;
-}) {
+function MonitoredPropertyCard({ property, index, onRemove }: { property: SavedProperty; index: number; onRemove: (id: number) => void }) {
     const [editing, setEditing] = useState(false);
     const { data, setData, put, processing } = useForm({
         website_url: property.website_url || '',
@@ -73,14 +75,18 @@ function MonitoredPropertyCard({
 
     return (
         <div
-            className="animate-fade-up group rounded-lg border p-3 transition-colors hover:bg-accent/50"
+            className="animate-fade-up group hover:bg-accent/50 rounded-lg border p-3 transition-colors"
             style={{ animationDelay: `${150 + index * 50}ms` }}
         >
             <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{property.display_name}</p>
                     <p className="text-muted-foreground font-mono text-xs">
-                        {property.property_id}
+                        {property.property_id ?? (
+                            <Badge variant="outline" className="mr-1 px-1.5 py-0 font-sans text-[10px]">
+                                Solo Search Console
+                            </Badge>
+                        )}
                         {property.ga_connection && <span> &middot; {property.ga_connection.google_email}</span>}
                     </p>
                 </div>
@@ -112,10 +118,7 @@ function MonitoredPropertyCard({
             )}
 
             {!editing && !property.website_url && (
-                <button
-                    onClick={() => setEditing(true)}
-                    className="text-muted-foreground mt-1 flex items-center gap-1 text-xs hover:text-foreground"
-                >
+                <button onClick={() => setEditing(true)} className="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1 text-xs">
                     <Globe className="h-3 w-3" />
                     Set website URL
                 </button>
@@ -140,9 +143,17 @@ function MonitoredPropertyCard({
 }
 
 export default function PropertiesIndex() {
-    const { available, saved, flash } = usePage<PropertiesPageProps>().props;
+    const { available, availableSites, saved, flash } = usePage<PropertiesPageProps>().props;
 
     const savedPropertyIds = new Set(saved.map((s) => s.property_id));
+    const savedSiteUrls = new Set(saved.map((s) => s.gsc_site_url));
+
+    function handleAddSite(site: AvailableSite) {
+        router.post(route('properties.store-search-console'), {
+            site_url: site.site_url,
+            ga_connection_id: site.ga_connection_id,
+        });
+    }
 
     function handleAdd(property: AvailableProperty) {
         router.post(route('properties.store'), {
@@ -177,6 +188,12 @@ export default function PropertiesIndex() {
             <div className="px-4 py-6 md:px-6">
                 <HeadingSmall title="GA4 Properties" description="Select which properties to monitor in your dashboard" />
 
+                {flash?.error && (
+                    <div className="animate-fade-up mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+                        {flash.error}
+                    </div>
+                )}
+
                 {flash?.success && (
                     <div className="animate-fade-up mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-400">
                         {flash.success}
@@ -184,68 +201,119 @@ export default function PropertiesIndex() {
                 )}
 
                 <div className="mt-6 grid gap-6 lg:grid-cols-2">
-                    {/* Available */}
-                    <Card className="animate-fade-up">
-                        <CardHeader>
-                            <CardTitle className="text-base">Available from Google</CardTitle>
-                            <CardDescription>Properties accessible from your connected accounts</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {Object.keys(groupedAvailable).length === 0 ? (
-                                <p className="text-muted-foreground text-sm">
-                                    No properties found. Connect a Google account in Settings first.
-                                </p>
-                            ) : (
-                                <div className="space-y-5">
-                                    {Object.entries(groupedAvailable).map(([accountName, properties]) => (
-                                        <div key={accountName}>
-                                            <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">
-                                                {accountName}
-                                            </p>
-                                            <div className="space-y-2">
-                                                {properties.map((property) => {
-                                                    const isAdded = savedPropertyIds.has(property.property_id);
-                                                    return (
-                                                        <div
-                                                            key={property.property_id}
-                                                            className="group flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent/50"
-                                                        >
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="truncate text-sm font-medium">
-                                                                    {property.display_name}
-                                                                </p>
-                                                                <p className="text-muted-foreground font-mono text-xs">
-                                                                    {property.property_id}
-                                                                </p>
+                    <div className="min-w-0 space-y-6">
+                        {/* Available */}
+                        <Card className="animate-fade-up">
+                            <CardHeader>
+                                <CardTitle className="text-base">Available from Google</CardTitle>
+                                <CardDescription>Properties accessible from your connected accounts</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {Object.keys(groupedAvailable).length === 0 ? (
+                                    <p className="text-muted-foreground text-sm">No properties found. Connect a Google account in Settings first.</p>
+                                ) : (
+                                    <div className="space-y-5">
+                                        {Object.entries(groupedAvailable).map(([accountName, properties]) => (
+                                            <div key={accountName}>
+                                                <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
+                                                    {accountName}
+                                                </p>
+                                                <div className="space-y-2">
+                                                    {properties.map((property) => {
+                                                        const isAdded = savedPropertyIds.has(property.property_id);
+                                                        return (
+                                                            <div
+                                                                key={property.property_id}
+                                                                className="group hover:bg-accent/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
+                                                            >
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="truncate text-sm font-medium">{property.display_name}</p>
+                                                                    <p className="text-muted-foreground font-mono text-xs">{property.property_id}</p>
+                                                                </div>
+                                                                <div className="ml-3">
+                                                                    {isAdded ? (
+                                                                        <Badge variant="secondary" className="gap-1 text-xs">
+                                                                            <Check className="h-3 w-3" />
+                                                                            Added
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-7 text-xs"
+                                                                            onClick={() => handleAdd(property)}
+                                                                        >
+                                                                            <Plus className="mr-1 h-3 w-3" />
+                                                                            Add
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <div className="ml-3">
-                                                                {isAdded ? (
-                                                                    <Badge variant="secondary" className="gap-1 text-xs">
-                                                                        <Check className="h-3 w-3" />
-                                                                        Added
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        className="h-7 text-xs"
-                                                                        onClick={() => handleAdd(property)}
-                                                                    >
-                                                                        <Plus className="mr-1 h-3 w-3" />
-                                                                        Add
-                                                                    </Button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Search Console only */}
+                        <Card className="animate-fade-up" style={{ animationDelay: '50ms' }}>
+                            <CardHeader>
+                                <CardTitle className="text-base">Solo Search Console</CardTitle>
+                                <CardDescription>
+                                    Siti verificati in Search Console senza una proprietà GA4: Search Console, Bing e indicizzazione, niente snapshot
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {availableSites.length === 0 ? (
+                                    <p className="text-muted-foreground text-sm">Nessun sito Search Console trovato negli account collegati.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {availableSites.map((site) => {
+                                            const isAdded = savedSiteUrls.has(site.site_url);
+                                            return (
+                                                <div
+                                                    key={site.site_url}
+                                                    className="hover:bg-accent/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
+                                                >
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-sm font-medium">{site.website_url}</p>
+                                                        <p className="text-muted-foreground truncate font-mono text-xs">
+                                                            {site.site_url} &middot; {site.connection_email}
+                                                        </p>
+                                                        {!isAdded && site.covered_by && (
+                                                            <p className="text-muted-foreground mt-0.5 text-xs">Già coperto da {site.covered_by}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        {isAdded ? (
+                                                            <Badge variant="secondary" className="gap-1 text-xs">
+                                                                <Check className="h-3 w-3" />
+                                                                Added
+                                                            </Badge>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-7 text-xs"
+                                                                onClick={() => handleAddSite(site)}
+                                                            >
+                                                                <Plus className="mr-1 h-3 w-3" />
+                                                                Add
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
 
                     {/* Monitored */}
                     <Card className="animate-fade-up" style={{ animationDelay: '100ms' }}>
@@ -265,12 +333,7 @@ export default function PropertiesIndex() {
                             ) : (
                                 <div className="space-y-2">
                                     {saved.map((property, i) => (
-                                        <MonitoredPropertyCard
-                                            key={property.id}
-                                            property={property}
-                                            index={i}
-                                            onRemove={handleRemove}
-                                        />
+                                        <MonitoredPropertyCard key={property.id} property={property} index={i} onRemove={handleRemove} />
                                     ))}
                                 </div>
                             )}

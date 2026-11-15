@@ -73,6 +73,10 @@ class SnapshotController extends Controller
             return back()->with('error', 'Nessuna proprietà attiva.');
         }
 
+        if (! $property->hasAnalytics()) {
+            return back()->with('error', 'Questa proprietà è solo su Search Console: non ha snapshot di Google Analytics.');
+        }
+
         $targetDate = Carbon::yesterday();
 
         // Find the latest snapshot for this property
