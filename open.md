@@ -8,7 +8,7 @@
 - Jérôme: aggiungere ai prompt degli agenti la regola "chiama add-annotation di Pulso ogni volta che pubblichi o modifichi qualcosa su un sito" e il parametro &agent= negli URL dei connettori (11/11).
 - Mobile: dopo il deploy, controllare sul telefono che nessuna pagina scrolli più in orizzontale (dashboard, report, keywords, AdSense, impostazioni); la correzione non è stata provata con dati reali (12/11).
 - Bing: collegamento verificato (log del 13 e 14/11: "Bing synced" con 0 righe per entrambi i siti, nessun errore): Bing non restituisce ancora dati. Se fra una settimana è ancora tutto a zero ma il pannello di Bing Webmaster Tools mostra dati, controllare la forma della risposta API (14/11).
-- Proprietà solo Search Console: codice pronto e testato, non ancora committato né in produzione; dopo il deploy (la migration parte da sola all'avvio) aggiungere il sito da Proprietà → Solo Search Console e controllare che lo storico di 16 mesi arrivi (job BackfillSearchConsoleData) (15/11).
+- Proprietà solo Search Console: commit f854bfb pushato su main (15/11); dopo il deploy (la migration parte da sola all'avvio) aggiungere il sito da Proprietà → Solo Search Console e controllare che lo storico di 16 mesi arrivi (job BackfillSearchConsoleData) (15/11).
 - Produzione: i log riportano `local.INFO`, quindi APP_ENV=local su Coolify; impostare APP_ENV=production e verificare APP_DEBUG=false (14/11).
 
 ## Parked
