@@ -75,6 +75,15 @@ class GaConnection extends Model
         return str_contains((string) $this->scopes, 'adsense');
     }
 
+    /**
+     * Whether the account granted the full Search Console scope (submit and
+     * remove sitemaps), not only webmasters.readonly.
+     */
+    public function canWriteSearchConsole(): bool
+    {
+        return in_array('webmasters', explode(' ', (string) $this->scopes), true);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -88,7 +88,7 @@ Go to APIs & Services > OAuth consent screen:
 |-------|---------|
 | `https://www.googleapis.com/auth/analytics.readonly` | Read GA4 report data |
 | `https://www.googleapis.com/auth/analytics.edit` | Read property list from Admin API (read-only despite the name) |
-| `https://www.googleapis.com/auth/webmasters.readonly` | Read Search Console data (queries, impressions, CTR, position) |
+| `https://www.googleapis.com/auth/webmasters` | Read Search Console data (queries, impressions, CTR, position, URL inspection) and submit or remove sitemaps. Accounts connected before 16/11/2026 have `webmasters.readonly`: reconnect them to enable sitemap submission |
 
 - **Test users:** Add any Gmail accounts that will use the app during development
 
@@ -260,7 +260,11 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `get-property-sources` | Get aggregated traffic sources for a property |
 | `get-property-pages` | Get top pages with per-page engagement metrics |
 | `get-property-search-queries` | Get top Google Search Console queries, filterable by page (URL or prefix) and query text |
-| `get-property-index-status` | Inspect indexed/non-indexed pages with coverage reasons |
+| `get-property-index-status` | Inspect indexed/non-indexed pages with coverage reasons, what to do for each, crawler and rich results |
+| `query-search-analytics` | Live Search Analytics: country, device, search appearance, hour, image/video/news/Discover/Google News, fresh data |
+| `list-sitemaps` | Submitted sitemaps with last submission, last download, errors and warnings |
+| `submit-sitemap` | Submit or resubmit a sitemap to Search Console (write) |
+| `delete-sitemap` | Remove an obsolete sitemap from Search Console (write) |
 | `get-property-events` | GA4 events (standard and custom) aggregated over a range |
 | `get-property-funnel` | Live GA4 funnel report over ordered events or page visits |
 | `get-property-adsense` | AdSense revenue with breakdowns by country, platform and ad unit |
@@ -301,7 +305,7 @@ https://your-domain.com/mcp/pulso?token=YOUR_TOKEN
 
 Name each agent with `&agent=seo` (or the `X-Pulso-Agent` header): every tool call is recorded in the **MCP log** page with the agent, the size of the answer (≈ tokens) and any error, and kept for 90 days.
 
-All tools are read-only except `add-annotation` and `submit-urls-to-bing`.
+All tools are read-only except `add-annotation`, `submit-urls-to-bing`, `submit-sitemap` and `delete-sitemap`.
 
 ### Bing Webmaster Tools
 

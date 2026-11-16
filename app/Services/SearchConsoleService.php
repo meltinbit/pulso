@@ -5,13 +5,18 @@ namespace App\Services;
 use App\Exceptions\SearchConsoleApiException;
 use App\Models\GaConnection;
 use App\Models\GaProperty;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use SimpleXMLElement;
 
 class SearchConsoleService
 {
+    private const SITES_API = 'https://searchconsole.googleapis.com/webmasters/v3/sites/';
+
     /** Maximum rows Google returns per Search Analytics request. */
     public const ROW_LIMIT = 25000;
 
@@ -139,42 +144,158 @@ class SearchConsoleService
     }
 
     /**
-     * List sitemaps available for the property.
+     * List sitemaps available for the property; empty when Search Console
+     * cannot be reached (used for URL discovery, where a miss is not fatal).
      *
      * @return array<int, array<string, mixed>>
      */
     public function listSitemaps(GaProperty $property): array
     {
-        $siteUrl = $this->resolveSiteUrl($property);
-
-        if (! $siteUrl) {
-            return [];
-        }
-
-        $token = $this->tokenService->getFreshToken($property->gaConnection);
-
-        $response = Http::withToken($token)
-            ->timeout(15)
-            ->get("https://searchconsole.googleapis.com/webmasters/v3/sites/{$siteUrl}/sitemaps");
-
-        if ($response->failed()) {
-            Log::warning("Search Console sitemap API error for {$property->display_name} ({$siteUrl}): HTTP {$response->status()} {$response->body()}");
+        try {
+            return $this->sitemaps($property);
+        } catch (SearchConsoleApiException $e) {
+            Log::warning("Search Console sitemap API error for {$property->display_name}: {$e->getMessage()}");
 
             return [];
         }
+    }
+
+    /**
+     * Sitemaps submitted for the property with their processing status.
+     * Google returns only error and warning counts, not the error details.
+     *
+     * @return array<int, array{path: string, type: ?string, is_pending: bool, is_sitemaps_index: bool, last_submitted: ?string, last_downloaded: ?string, warnings: int, errors: int, contents: list<array{type: ?string, submitted: int}>}>
+     *
+     * @throws SearchConsoleApiException
+     */
+    public function sitemaps(GaProperty $property): array
+    {
+        $response = $this->siteRequest($property)
+            ->get(self::SITES_API.urlencode($this->siteFor($property)).'/sitemaps');
+
+        $this->throwIfFailed($response, 'lettura delle sitemap');
 
         return collect($response->json('sitemap', []))
+            ->filter(fn (array $sitemap): bool => filled($sitemap['path'] ?? null))
             ->map(fn (array $sitemap): array => [
-                'path' => $sitemap['path'] ?? null,
+                'path' => $sitemap['path'],
                 'type' => $sitemap['type'] ?? null,
                 'is_pending' => (bool) ($sitemap['isPending'] ?? false),
                 'is_sitemaps_index' => (bool) ($sitemap['isSitemapsIndex'] ?? false),
+                'last_submitted' => $sitemap['lastSubmitted'] ?? null,
+                'last_downloaded' => $sitemap['lastDownloaded'] ?? null,
                 'warnings' => (int) ($sitemap['warnings'] ?? 0),
                 'errors' => (int) ($sitemap['errors'] ?? 0),
+                'contents' => array_map(fn (array $content): array => [
+                    'type' => $content['type'] ?? null,
+                    'submitted' => (int) ($content['submitted'] ?? 0),
+                ], $sitemap['contents'] ?? []),
             ])
-            ->filter(fn (array $sitemap): bool => filled($sitemap['path']))
             ->values()
             ->all();
+    }
+
+    /**
+     * Submit (or resubmit) a sitemap: Google queues it for download.
+     *
+     * @throws SearchConsoleApiException
+     */
+    public function submitSitemap(GaProperty $property, string $sitemapUrl): void
+    {
+        $response = $this->siteRequest($property)
+            ->put(self::SITES_API.urlencode($this->siteFor($property)).'/sitemaps/'.urlencode($sitemapUrl));
+
+        $this->throwIfFailed($response, 'invio della sitemap');
+    }
+
+    /**
+     * Remove a sitemap from Search Console. The pages already known to Google
+     * stay indexed; Google only stops reading that file.
+     *
+     * @throws SearchConsoleApiException
+     */
+    public function deleteSitemap(GaProperty $property, string $sitemapUrl): void
+    {
+        $response = $this->siteRequest($property)
+            ->delete(self::SITES_API.urlencode($this->siteFor($property)).'/sitemaps/'.urlencode($sitemapUrl));
+
+        $this->throwIfFailed($response, 'rimozione della sitemap');
+    }
+
+    /**
+     * Live Search Analytics query with any dimensions, filters and search type,
+     * for what the stored per-day query/page rows do not cover (country,
+     * device, search appearance, image/video/news/Discover, fresh or hourly
+     * data).
+     *
+     * @param  array<string, mixed>  $body  Search Analytics request body
+     * @return list<array{keys: list<string>, clicks: int, impressions: int, ctr: float, position: float}>
+     *
+     * @throws SearchConsoleApiException
+     */
+    public function querySearchAnalytics(GaProperty $property, array $body): array
+    {
+        $response = $this->siteRequest($property)
+            ->timeout(60)
+            ->post(self::SITES_API.urlencode($this->siteFor($property)).'/searchAnalytics/query', $body);
+
+        $this->throwIfFailed($response, 'query Search Analytics');
+
+        return array_map(fn (array $row): array => [
+            'keys' => array_map('strval', $row['keys'] ?? []),
+            'clicks' => (int) ($row['clicks'] ?? 0),
+            'impressions' => (int) ($row['impressions'] ?? 0),
+            'ctr' => round(($row['ctr'] ?? 0) * 100, 2),
+            'position' => round($row['position'] ?? 0, 1),
+        ], $response->json('rows', []));
+    }
+
+    /**
+     * The exact Search Console site of a property (sc-domain:host or a URL
+     * prefix).
+     *
+     * @throws SearchConsoleApiException
+     */
+    public function siteFor(GaProperty $property): string
+    {
+        $siteUrl = $this->resolveSiteUrl($property);
+
+        if (! $siteUrl) {
+            throw new SearchConsoleApiException("Nessun sito Search Console corrisponde a {$property->display_name} ({$property->website_url}) con l'account Google collegato.");
+        }
+
+        return urldecode($siteUrl);
+    }
+
+    private function siteRequest(GaProperty $property): PendingRequest
+    {
+        return Http::withToken($this->tokenService->getFreshToken($property->gaConnection))
+            ->acceptJson()
+            ->timeout(30)
+            ->connectTimeout(5);
+    }
+
+    /**
+     * @throws SearchConsoleApiException
+     */
+    private function throwIfFailed(Response $response, string $action): void
+    {
+        if ($response->successful()) {
+            return;
+        }
+
+        $message = (string) ($response->json('error.message') ?? Str::limit($response->body(), 200));
+        $reason = (string) ($response->json('error.details.0.reason') ?? $response->json('error.status') ?? '');
+
+        if ($response->status() === 403 && (str_contains($reason, 'SCOPE') || Str::contains($message, 'insufficient', ignoreCase: true))) {
+            throw new SearchConsoleApiException("L'account Google ha solo il permesso di lettura su Search Console: ricollegalo in Impostazioni → Google di Pulso per concedere anche la scrittura ({$action}).");
+        }
+
+        if ($response->status() === 403) {
+            throw new SearchConsoleApiException("Search Console ha rifiutato la {$action}: l'account collegato deve essere proprietario o utente con accesso completo del sito. Dettaglio di Google: {$message}");
+        }
+
+        throw new SearchConsoleApiException("Errore Search Console nella {$action} (HTTP {$response->status()}): {$message}");
     }
 
     /**
@@ -339,6 +460,8 @@ class SearchConsoleService
         if ($response->failed()) {
             return [
                 'url' => $url,
+                'crawled_as' => null,
+                'rich_results' => null,
                 'is_indexed' => null,
                 'verdict' => null,
                 'coverage_state' => null,
@@ -351,7 +474,7 @@ class SearchConsoleService
                 'referring_urls' => [],
                 'sitemaps' => [],
                 'inspection_result_link' => null,
-                'error' => "HTTP {$response->status()}",
+                'error' => "HTTP {$response->status()}: ".($response->json('error.message') ?? 'errore sconosciuto'),
             ];
         }
 
@@ -359,8 +482,24 @@ class SearchConsoleService
         $index = $result['indexStatusResult'] ?? [];
         $verdict = $index['verdict'] ?? null;
 
+        $richResults = $result['richResultsResult'] ?? null;
+
         return [
             'url' => $url,
+            'crawled_as' => $index['crawledAs'] ?? null,
+            'rich_results' => $richResults === null ? null : [
+                'verdict' => $richResults['verdict'] ?? null,
+                'types' => collect($richResults['detectedItems'] ?? [])->map(fn (array $item): array => [
+                    'type' => $item['richResultType'] ?? null,
+                    'items' => count($item['items'] ?? []),
+                    'issues' => collect($item['items'] ?? [])
+                        ->flatMap(fn (array $entry): array => $entry['issues'] ?? [])
+                        ->map(fn (array $issue): string => ($issue['severity'] ?? 'ISSUE').': '.($issue['issueMessage'] ?? ''))
+                        ->unique()
+                        ->values()
+                        ->all(),
+                ])->values()->all(),
+            ],
             'is_indexed' => $verdict === 'PASS' ? true : ($verdict === null ? null : false),
             'verdict' => $verdict,
             'coverage_state' => $index['coverageState'] ?? null,

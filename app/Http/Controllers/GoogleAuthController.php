@@ -22,7 +22,7 @@ class GoogleAuthController extends Controller
             ->scopes([
                 'https://www.googleapis.com/auth/analytics.readonly',
                 'https://www.googleapis.com/auth/analytics.edit',
-                'https://www.googleapis.com/auth/webmasters.readonly',
+                'https://www.googleapis.com/auth/webmasters',
                 'https://www.googleapis.com/auth/adsense.readonly',
             ])
             ->with(array_filter([
