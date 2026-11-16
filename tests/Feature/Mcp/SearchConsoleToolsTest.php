@@ -184,5 +184,5 @@ test('health flags Google accounts with read only Search Console access', functi
     $issues = collect(app(ConnectionHealthService::class)->report($this->user)['connections'])->pluck('issue')->filter();
 
     expect($issues)->toHaveCount(1)
-        ->and($issues->first())->toContain('sola lettura');
+        ->and($issues->first())->toContain('Permessi Search Console incompleti');
 });

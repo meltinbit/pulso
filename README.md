@@ -89,6 +89,7 @@ Go to APIs & Services > OAuth consent screen:
 | `https://www.googleapis.com/auth/analytics.readonly` | Read GA4 report data |
 | `https://www.googleapis.com/auth/analytics.edit` | Read property list from Admin API (read-only despite the name) |
 | `https://www.googleapis.com/auth/webmasters` | Read Search Console data (queries, impressions, CTR, position, URL inspection) and submit or remove sitemaps. Accounts connected before 16/11/2026 have `webmasters.readonly`: reconnect them to enable sitemap submission |
+| `https://www.googleapis.com/auth/siteverification` | Verify ownership of new sites (DNS, meta tag, file, GA4 or GTM tag) before adding them to Search Console |
 
 - **Test users:** Add any Gmail accounts that will use the app during development
 
@@ -265,6 +266,8 @@ Each token is tied to a single Pulso user. MCP tools only return properties owne
 | `list-sitemaps` | Submitted sitemaps with last submission, last download, errors and warnings |
 | `submit-sitemap` | Submit or resubmit a sitemap to Search Console (write) |
 | `delete-sitemap` | Remove an obsolete sitemap from Search Console (write) |
+| `get-site-verification-token` | Verification code to publish for a new site (DNS record, meta tag, file) |
+| `add-search-console-site` | Verify a new site, add it to Search Console and link it in Pulso (write) |
 | `get-property-events` | GA4 events (standard and custom) aggregated over a range |
 | `get-property-funnel` | Live GA4 funnel report over ordered events or page visits |
 | `get-property-adsense` | AdSense revenue with breakdowns by country, platform and ad unit |
@@ -305,7 +308,7 @@ https://your-domain.com/mcp/pulso?token=YOUR_TOKEN
 
 Name each agent with `&agent=seo` (or the `X-Pulso-Agent` header): every tool call is recorded in the **MCP log** page with the agent, the size of the answer (≈ tokens) and any error, and kept for 90 days.
 
-All tools are read-only except `add-annotation`, `submit-urls-to-bing`, `submit-sitemap` and `delete-sitemap`.
+All tools are read-only except `add-annotation`, `submit-urls-to-bing`, `submit-sitemap`, `delete-sitemap` and `add-search-console-site`.
 
 ### Bing Webmaster Tools
 

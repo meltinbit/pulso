@@ -111,7 +111,7 @@ class ConnectionHealthService
         [$status, $issue] = match (true) {
             ! $connection->is_active => ['inactive', 'Connessione disattivata: ricollega l\'account in Impostazioni → Google.'],
             $alerted => ['expired', 'Token Google scaduto o revocato: ricollega l\'account in Impostazioni → Google.'],
-            ! $connection->canWriteSearchConsole() => ['ok', 'Search Console in sola lettura: ricollega l\'account in Impostazioni → Google per inviare e rimuovere sitemap da Pulso.'],
+            ! $connection->canWriteSearchConsole() || ! $connection->canVerifySites() => ['ok', 'Permessi Search Console incompleti: ricollega l\'account in Impostazioni → Google per inviare sitemap e aggiungere nuovi siti da Pulso.'],
             default => ['ok', null],
         };
 

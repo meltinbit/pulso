@@ -251,6 +251,23 @@ class SearchConsoleService
     }
 
     /**
+     * Add a site to the Search Console list of the Google account. Google
+     * shows data only once the account is a verified owner (see
+     * SiteVerificationService).
+     *
+     * @throws SearchConsoleApiException
+     */
+    public function addSite(GaConnection $connection, string $siteUrl): void
+    {
+        $response = Http::withToken($this->tokenService->getFreshToken($connection))
+            ->acceptJson()
+            ->timeout(30)
+            ->put(self::SITES_API.urlencode($siteUrl));
+
+        $this->throwIfFailed($response, 'aggiunta del sito');
+    }
+
+    /**
      * The exact Search Console site of a property (sc-domain:host or a URL
      * prefix).
      *

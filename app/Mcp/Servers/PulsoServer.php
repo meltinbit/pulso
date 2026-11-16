@@ -3,6 +3,7 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddAnnotationTool;
+use App\Mcp\Tools\AddSearchConsoleSiteTool;
 use App\Mcp\Tools\CheckSitemapPagesTool;
 use App\Mcp\Tools\DeleteSitemapTool;
 use App\Mcp\Tools\GetAdsCampaignsTool;
@@ -29,6 +30,7 @@ use App\Mcp\Tools\GetPropertySnapshotsTool;
 use App\Mcp\Tools\GetPropertySourcesTool;
 use App\Mcp\Tools\GetPropertySummaryTool;
 use App\Mcp\Tools\GetQueryPageMapTool;
+use App\Mcp\Tools\GetSiteVerificationTokenTool;
 use App\Mcp\Tools\ListAdsAccountsTool;
 use App\Mcp\Tools\ListAnnotationsTool;
 use App\Mcp\Tools\ListMetaAdAccountsTool;
@@ -48,7 +50,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 #[Version('1.0.0')]
 #[Instructions('Pulso is a GA4 analytics dashboard with Google Search Console, Bing Webmaster Tools and Google AdSense integrations. It stores daily snapshots of GA4 properties with metrics (users, sessions, pageviews, bounce rate, engagement rate), week-over-week and 30-day deltas, trend analysis, anomaly detection, traffic sources, top pages, URL index inspection status (indexed vs excluded with coverage reasons), and GA4 events (standard and custom, e.g. calcolo_eseguito, feedback_calcolatore). Search Console query data (clicks, impressions, CTR, position) is stored separately from the snapshots, as complete per-day query/page rows going back up to 16 months. AdSense revenue (estimated earnings, page views, impressions, clicks, ad requests, with derived RPM, CTR, CPC and coverage) is stored per day for each property, filtered to the domain of the property website URL, with breakdowns by country, platform and ad unit.
 
-Workflow: start with list-properties for an overview, then use get-property-summary for a single property deep dive. Some properties are Search Console only (has_analytics false in list-properties): for them only the Search Console, Bing, index, sitemap, page experience and annotation tools return data. For trend analysis over time, use get-property-snapshots, get-property-sources, get-property-pages, get-property-search-queries, get-property-events and get-property-adsense with date ranges (from/to). Use get-property-funnel to measure conversion between ordered GA4 events or page visits (live from GA4, not snapshots). Use get-property-index-status for URL-level indexing diagnostics, either by passing explicit URLs or by discovering them from the sitemap; it says what to do for each reason a page is not indexed. Use query-search-analytics for live Search Console data the stored rows do not cover: country, device, search appearance, hour, image/video/news/Discover/Google News, and fresh data of the last days. list-sitemaps shows the submitted sitemaps with errors and last download, submit-sitemap submits or resubmits one (after a new site, many new pages or a URL change), delete-sitemap removes an obsolete one. Google offers no API to request indexing of a single page: for that, resubmit the sitemap and use submit-urls-to-bing for Bing. All range tools default to 30 days but accept custom ranges for deeper analysis.
+Workflow: start with list-properties for an overview, then use get-property-summary for a single property deep dive. Some properties are Search Console only (has_analytics false in list-properties): for them only the Search Console, Bing, index, sitemap, page experience and annotation tools return data. For trend analysis over time, use get-property-snapshots, get-property-sources, get-property-pages, get-property-search-queries, get-property-events and get-property-adsense with date ranges (from/to). Use get-property-funnel to measure conversion between ordered GA4 events or page visits (live from GA4, not snapshots). Use get-property-index-status for URL-level indexing diagnostics, either by passing explicit URLs or by discovering them from the sitemap; it says what to do for each reason a page is not indexed. Use query-search-analytics for live Search Console data the stored rows do not cover: country, device, search appearance, hour, image/video/news/Discover/Google News, and fresh data of the last days. list-sitemaps shows the submitted sitemaps with errors and last download, submit-sitemap submits or resubmits one (after a new site, many new pages or a URL change), delete-sitemap removes an obsolete one. To add a new site to Search Console: get-site-verification-token returns the code to publish (DNS record, meta tag, file, or none with the GA4/GTM tag), then add-search-console-site verifies it, adds the site and links it in Pulso. Google offers no API to request indexing of a single page: for that, resubmit the sitemap and use submit-urls-to-bing for Bing. All range tools default to 30 days but accept custom ranges for deeper analysis.
 
 Note: Search Console data has a 2-3 day delay from Google, so the most recent days may not have search query data yet, and the last few days keep being revised upward as Google consolidates them. The summary tool automatically falls back to the latest day that has search queries. Because query rows are stored per day rather than as a truncated top list, get-property-search-queries sums a date range correctly: totals are real range totals, and CTR and position are weighted by impressions. Landing pages are returned as full URLs; get-property-search-queries can be filtered to one page or a URL prefix (full URL or path such as /blog/) and to queries containing a text, with up to 500 results. URL inspection is live URL-level data from Search Console, not a historical snapshot, and Google does not expose the full Page Indexing report in bulk via API. GA4 events are captured per daily snapshot (top 50 by eventCount) — rare custom events with very low counts may not appear. AdSense data includes partial earnings for today, and estimated earnings for the last few days are still adjusted by Google; amounts are in the property currency.
 
@@ -80,6 +82,8 @@ class PulsoServer extends Server
         ListSitemapsTool::class,
         SubmitSitemapTool::class,
         DeleteSitemapTool::class,
+        GetSiteVerificationTokenTool::class,
+        AddSearchConsoleSiteTool::class,
         GetPropertyEventsTool::class,
         GetPropertyFunnelTool::class,
         GetPropertyAdSenseTool::class,

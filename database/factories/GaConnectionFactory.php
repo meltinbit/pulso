@@ -26,7 +26,7 @@ class GaConnectionFactory extends Factory
             'access_token' => $this->faker->sha256(),
             'refresh_token' => $this->faker->sha256(),
             'token_expires_at' => now()->addHour(),
-            'scopes' => 'analytics.readonly webmasters',
+            'scopes' => 'analytics.readonly webmasters siteverification',
             'is_active' => true,
             'authorized_at' => now(),
         ];

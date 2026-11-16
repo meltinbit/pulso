@@ -84,6 +84,15 @@ class GaConnection extends Model
         return in_array('webmasters', explode(' ', (string) $this->scopes), true);
     }
 
+    /**
+     * Whether the account granted the Site Verification scope (verify and add
+     * new sites to Search Console).
+     */
+    public function canVerifySites(): bool
+    {
+        return in_array('siteverification', explode(' ', (string) $this->scopes), true);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
