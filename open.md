@@ -9,7 +9,7 @@
 - Mobile: dopo il deploy, controllare sul telefono che nessuna pagina scrolli più in orizzontale (dashboard, report, keywords, AdSense, impostazioni); la correzione non è stata provata con dati reali (12/11).
 - Bing: collegamento verificato (log del 13 e 14/11: "Bing synced" con 0 righe per entrambi i siti, nessun errore): Bing non restituisce ancora dati. Se fra una settimana è ancora tutto a zero ma il pannello di Bing Webmaster Tools mostra dati, controllare la forma della risposta API (14/11).
 - Proprietà solo Search Console: commit f854bfb pushato su main (15/11); dopo il deploy (la migration parte da sola all'avvio) aggiungere il sito da Proprietà → Solo Search Console e controllare che lo storico di 16 mesi arrivi (job BackfillSearchConsoleData) (15/11).
-- Search Console in scrittura: dopo il deploy ricollegare ogni account Google da Impostazioni → Google (ora Pulso chiede `webmasters` al posto di `webmasters.readonly` e `siteverification`; Health segnala gli account ancora in sola lettura), poi provare submit-sitemap, list-sitemaps e l'aggiunta di un sito nuovo (get-site-verification-token → add-search-console-site) su un sito vero (16/11).
+- Search Console in scrittura: deploy verificato e account Google ricollegati da Fabio (16/11); manca la prova reale di list-sitemaps, submit-sitemap e dell'aggiunta di un sito nuovo (get-site-verification-token → add-search-console-site) da una sessione con il connettore Pulso aggiornato (16/11).
 - Produzione: i log riportano `local.INFO`, quindi APP_ENV=local su Coolify; impostare APP_ENV=production e verificare APP_DEBUG=false (14/11).
 
 ## Parked
